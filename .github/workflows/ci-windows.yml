@@ -1,0 +1,46 @@
+name: CI (Windows)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [ Debug, Release ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Set reusable strings
+        id: strings
+        shell: pwsh
+        run: |
+          echo "build-output-dir=${{ github.workspace }}\build" >> $env:GITHUB_OUTPUT
+
+      - name: Configure CMake (Visual Studio 2022, x64)
+        shell: pwsh
+        run: >
+          cmake -B ${{ steps.strings.outputs.build-output-dir }}
+          -S ${{ github.workspace }}
+          -G "Visual Studio 17 2022"
+          -A x64
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DENABLE_TESTS=ON
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} -- /m
+
+      - name: Test
+        shell: pwsh
+        run: ctest --test-dir ${{ steps.strings.outputs.build-output-dir }} -C ${{ matrix.build_type }} --output-on-failure
