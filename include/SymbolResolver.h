@@ -49,7 +49,7 @@ namespace gwatch
 		void* m_hProcess{};
 		bool m_symInitialized{false};
 
-		static std::string lastErrorAsString();
+		static std::string last_error_as_string();
 	};
 
 #endif

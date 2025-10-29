@@ -10,11 +10,13 @@ option(ENABLE_TESTS "Enable testing" OFF)
 set(HEADER_FILES
 	include/ArgumentsParser.h
 	include/SymbolResolver.h
+	include/ProcessLauncher.h
 )
 
 set(SOURCE_FILES
 	src/ArgumentsParser.cpp
 	src/WindowsSymbolResolver.cpp
+	src/WindowsProcessLauncher.cpp
 )
 
 set(PROJECT_LIB ${PROJECT_NAME}_lib)

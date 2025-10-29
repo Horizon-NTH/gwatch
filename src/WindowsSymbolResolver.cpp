@@ -43,7 +43,7 @@ namespace gwatch
 
 		if (const char* path = searchPath.empty() ? nullptr : searchPath.c_str(); !SymInitialize(m_hProcess, path, invadeProcess ? TRUE : FALSE))
 		{
-			throw SymbolError(std::string("SymInitialize failed: ") + lastErrorAsString());
+			throw SymbolError(std::string("SymInitialize failed: ") + last_error_as_string());
 		}
 		m_symInitialized = true;
 	}
@@ -70,14 +70,14 @@ namespace gwatch
 
 		if (!SymFromName(m_hProcess, std::string(symbol).c_str(), info))
 		{
-			throw SymbolError("SymFromName(\"" + std::string(symbol) + "\") failed: " + lastErrorAsString());
+			throw SymbolError("SymFromName(\"" + std::string(symbol) + "\") failed: " + last_error_as_string());
 		}
 
 		// Query the size from type information (more reliable for globals than SYMBOL_INFO::Size).
 		ULONG64 length = 0;
 		if (!SymGetTypeInfo(m_hProcess, info->ModBase, info->TypeIndex, TI_GET_LENGTH, &length))
 		{
-			throw SymbolError("SymGetTypeInfo(TI_GET_LENGTH) failed: " + lastErrorAsString());
+			throw SymbolError("SymGetTypeInfo(TI_GET_LENGTH) failed: " + last_error_as_string());
 		}
 
 		ResolvedSymbol out
@@ -99,7 +99,7 @@ namespace gwatch
 		return out;
 	}
 
-	std::string WindowsSymbolResolver::lastErrorAsString()
+	std::string WindowsSymbolResolver::last_error_as_string()
 	{
 		const DWORD err = GetLastError();
 		if (err == 0)
