@@ -25,6 +25,8 @@ set(TEST_SOURCES
 	src/ArgumentsParserTest.cpp
 	src/WindowsSymbolResolverTest.cpp
 	src/ProcessLauncherTest.cpp
+	src/LoggerTest.cpp
+	src/MemoryWatcherTest.cpp
 )
 
 add_executable(runTests ${TEST_SOURCES})

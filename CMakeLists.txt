@@ -11,12 +11,16 @@ set(HEADER_FILES
 	include/ArgumentsParser.h
 	include/SymbolResolver.h
 	include/ProcessLauncher.h
+	include/MemoryWatcher.h
+	include/Logger.h
 )
 
 set(SOURCE_FILES
 	src/ArgumentsParser.cpp
 	src/WindowsSymbolResolver.cpp
 	src/WindowsProcessLauncher.cpp
+	src/WindowsMemoryWatcher.cpp
+	src/Logger.cpp
 )
 
 set(PROJECT_LIB ${PROJECT_NAME}_lib)

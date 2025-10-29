@@ -39,7 +39,7 @@ struct RecordingSink final : gwatch::IDebugEventSink
 		using T = gwatch::DebugEventType;
 		switch (ev.type)
 		{
-			case T::CreateProcess:
+			case T::_CreateProcess:
 				{
 					saw_create_process = true;
 					break;
@@ -53,7 +53,7 @@ struct RecordingSink final : gwatch::IDebugEventSink
 					}
 					break;
 				}
-			case T::OutputDebugString:
+			case T::_OutputDebugString:
 				{
 					const auto& [message] = std::get<gwatch::OutputDebugStringInfo>(ev.payload);
 					debug_msgs.push_back(message);

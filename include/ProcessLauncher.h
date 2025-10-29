@@ -29,14 +29,14 @@ namespace gwatch
 	// Cross-platform debug event types
 	enum class DebugEventType
 	{
-		CreateProcess,
+		_CreateProcess,
 		ExitProcess,
 		CreateThread,
 		ExitThread,
 		Exception,
 		LoadDll,
 		UnloadDll,
-		OutputDebugString,
+		_OutputDebugString,
 		Rip
 	};
 
@@ -143,7 +143,6 @@ namespace gwatch
 
 #ifdef _WIN32
 
-	// Windows implementation
 	class WindowsProcessLauncher final : public IProcessLauncher
 	{
 	public:
@@ -163,8 +162,8 @@ namespace gwatch
 		bool running() const override { return m_running; }
 
 	private:
-		HANDLE m_hProcess = nullptr;
-		HANDLE m_hThread = nullptr;
+		void* m_hProcess = nullptr;
+		void* m_hThread = nullptr;
 		std::uint32_t m_pid = 0;
 		std::uint32_t m_tid = 0;
 
@@ -178,9 +177,9 @@ namespace gwatch
 		static std::wstring quote_arg(std::wstring_view arg);
 		static std::string last_error_string();
 
-		static std::string resolve_module_path(HANDLE hFile, HANDLE hProcess, void* remoteImageName, std::uint16_t isUnicode, std::size_t maxBytes = 32768);
+		static std::string resolve_module_path(void* hFile, void* hProcess, const void* remoteImageName, std::uint16_t isUnicode, std::size_t maxBytes = 32768);
 
-		static std::string read_remote_string(HANDLE hProcess, const void* remote, bool isUnicode, std::size_t maxBytes);
+		static std::string read_remote_string(void* hProcess, const void* remote, bool isUnicode, std::size_t maxBytes);
 
 		static std::uint32_t map_continue_code(ContinueStatus sinkDecision, const DebugEvent& ev);
 	};

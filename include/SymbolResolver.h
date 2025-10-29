@@ -30,7 +30,6 @@ namespace gwatch
 
 #ifdef _WIN32
 
-	// Windows implementation using DbgHelp.
 	class WindowsSymbolResolver final : public ISymbolResolver
 	{
 	public:

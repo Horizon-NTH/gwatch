@@ -103,7 +103,7 @@ namespace gwatch
 			{
 				case CREATE_PROCESS_DEBUG_EVENT:
 					{
-						ev.type = DebugEventType::CreateProcess;
+						ev.type = DebugEventType::_CreateProcess;
 						const auto& info = de.u.CreateProcessInfo;
 						CreateProcessInfo cp{};
 						cp.image_base = reinterpret_cast<std::uint64_t>(info.lpBaseOfImage);
@@ -184,7 +184,7 @@ namespace gwatch
 					}
 				case OUTPUT_DEBUG_STRING_EVENT:
 					{
-						ev.type = DebugEventType::OutputDebugString;
+						ev.type = DebugEventType::_OutputDebugString;
 						const auto& [lpDebugStringData, fUnicode, nDebugStringLength] = de.u.DebugString;
 						OutputDebugStringInfo oi{};
 						oi.message = read_remote_string(m_hProcess, lpDebugStringData, fUnicode != 0, nDebugStringLength);
@@ -347,7 +347,7 @@ namespace gwatch
 		return s;
 	}
 
-	std::string WindowsProcessLauncher::resolve_module_path(const HANDLE hFile, const HANDLE hProcess, void* remoteImageName, const std::uint16_t isUnicode, const std::size_t maxBytes)
+	std::string WindowsProcessLauncher::resolve_module_path(const HANDLE hFile, const HANDLE hProcess, const void* remoteImageName, const std::uint16_t isUnicode, const std::size_t maxBytes)
 	{
 		// If we have a file handle, we try GetFinalPathNameByHandle.
 		if (hFile)
