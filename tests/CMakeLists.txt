@@ -13,6 +13,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 
 set(TEST_SOURCES
 	src/ArgumentsParserTest.cpp
+	src/WindowsSymbolResolverTest.cpp
 )
 
 add_executable(runTests ${TEST_SOURCES})

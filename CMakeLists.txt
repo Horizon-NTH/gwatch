@@ -8,11 +8,13 @@ project(gwatch VERSION 0.0)
 option(ENABLE_TESTS "Enable testing" OFF)
 
 set(HEADER_FILES
-        include/ArgumentsParser.h
+	include/ArgumentsParser.h
+	include/SymbolResolver.h
 )
 
 set(SOURCE_FILES
-        src/ArgumentsParser.cpp
+	src/ArgumentsParser.cpp
+	src/WindowsSymbolResolver.cpp
 )
 
 set(PROJECT_LIB ${PROJECT_NAME}_lib)
@@ -28,5 +30,5 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 target_link_libraries(${PROJECT_NAME} ${PROJECT_LIB})
 
 if (ENABLE_TESTS)
-    add_subdirectory(tests)
+	add_subdirectory(tests)
 endif ()
