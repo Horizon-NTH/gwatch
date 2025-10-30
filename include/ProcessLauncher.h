@@ -158,6 +158,7 @@ namespace gwatch
 		std::optional<std::uint32_t> run_debug_loop(IDebugEventSink& sink) override;
 		void stop() override;
 
+		void* native_process_handle() const;
 		std::uint32_t pid() const override { return m_pid; }
 		bool running() const override { return m_running; }
 

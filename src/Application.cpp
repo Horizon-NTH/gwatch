@@ -57,12 +57,12 @@ namespace gwatch
 		m_processLauncher = std::make_unique<WindowsProcessLauncher>();
 #endif
 		const LaunchConfig cfg{
-				.exe_path = m_args.execPath,
-				.args = m_args.targetArgs,
-				.new_console = false,
-				.suspended = false,
-				.debug_children = false,
-			};
+			.exe_path = m_args.execPath,
+			.args = m_args.targetArgs,
+			.new_console = false,
+			.suspended = false,
+			.debug_children = false,
+		};
 		m_processLauncher->launch(cfg);
 	}
 
@@ -71,13 +71,22 @@ namespace gwatch
 		if (!m_processLauncher)
 			throw std::runtime_error("You must attach WindowsProcessLauncher before resolving!");
 #ifdef _WIN32
-		m_hProc = ::OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, m_processLauncher->pid());
-		if (!m_hProc)
+		const auto* w = dynamic_cast<WindowsProcessLauncher*>(m_processLauncher.get());
+		if (!w) throw std::runtime_error("WindowsProcessLauncher expected");
+
+		const auto raw = w->native_process_handle();
+
+		HANDLE dup{};
+		if (!::DuplicateHandle(::GetCurrentProcess(), raw, ::GetCurrentProcess(),
+		                       &dup, 0, FALSE, DUPLICATE_SAME_ACCESS))
 		{
-			throw std::runtime_error("Can't open process!");
+			throw std::runtime_error("DuplicateHandle failed");
 		}
-		m_resolver = std::make_unique<WindowsSymbolResolver>(m_hProc, "", true);
-		m_symbol = m_resolver->resolve(m_args.symbol);
+		m_hProc = dup;
+
+		const std::unique_ptr<ISymbolResolver> resolver =
+			std::make_unique<WindowsSymbolResolver>(m_hProc, "", false);
+		m_symbol = resolver->resolve(m_args.symbol);
 #endif
 	}
 

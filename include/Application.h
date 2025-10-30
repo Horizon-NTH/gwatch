@@ -23,7 +23,6 @@ namespace gwatch
 		CliArgs m_args;
 		std::unique_ptr<IProcessLauncher> m_processLauncher;
 		std::unique_ptr<IMemoryWatcher> m_memoryWatcher;
-		std::unique_ptr<ISymbolResolver> m_resolver;
 		std::optional<ResolvedSymbol> m_symbol;
 		void* m_hProc;
 

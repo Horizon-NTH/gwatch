@@ -60,7 +60,7 @@ namespace gwatch
 
 		PROCESS_INFORMATION pi{};
 		const BOOL ok = ::CreateProcessW(nullptr, cmd.data(), nullptr,
-			nullptr, cfg.inherit_handles ? TRUE : FALSE, creationFlags, nullptr, wdir.empty() ? nullptr : wdir.c_str(), &si, &pi);
+		                                 nullptr, cfg.inherit_handles ? TRUE : FALSE, creationFlags, nullptr, wdir.empty() ? nullptr : wdir.c_str(), &si, &pi);
 
 		if (!ok)
 		{
@@ -101,118 +101,118 @@ namespace gwatch
 
 			switch (de.dwDebugEventCode)
 			{
-				case CREATE_PROCESS_DEBUG_EVENT:
-					{
-						ev.type = DebugEventType::_CreateProcess;
-						const auto& info = de.u.CreateProcessInfo;
-						CreateProcessInfo cp{};
-						cp.image_base = reinterpret_cast<std::uint64_t>(info.lpBaseOfImage);
-						cp.entry_point = reinterpret_cast<std::uint64_t>(info.lpStartAddress);
-						cp.image_path = resolve_module_path(info.hFile, m_hProcess, info.lpImageName, info.fUnicode);
-						ev.payload = cp;
+			case CREATE_PROCESS_DEBUG_EVENT:
+				{
+					ev.type = DebugEventType::_CreateProcess;
+					const auto& info = de.u.CreateProcessInfo;
+					CreateProcessInfo cp{};
+					cp.image_base = reinterpret_cast<std::uint64_t>(info.lpBaseOfImage);
+					cp.entry_point = reinterpret_cast<std::uint64_t>(info.lpStartAddress);
+					cp.image_path = resolve_module_path(info.hFile, m_hProcess, info.lpImageName, info.fUnicode);
+					ev.payload = cp;
 
-						if (info.hFile)
-							::CloseHandle(info.hFile);
+					if (info.hFile)
+						::CloseHandle(info.hFile);
 
-						sinkDecision = sink.on_event(ev);
-						break;
-					}
-				case EXIT_PROCESS_DEBUG_EVENT:
-					{
-						ev.type = DebugEventType::ExitProcess;
-						ExitProcessInfo xp{};
-						xp.exit_code = de.u.ExitProcess.dwExitCode;
-						ev.payload = xp;
-						sinkDecision = sink.on_event(ev);
+					sinkDecision = sink.on_event(ev);
+					break;
+				}
+			case EXIT_PROCESS_DEBUG_EVENT:
+				{
+					ev.type = DebugEventType::ExitProcess;
+					ExitProcessInfo xp{};
+					xp.exit_code = de.u.ExitProcess.dwExitCode;
+					ev.payload = xp;
+					sinkDecision = sink.on_event(ev);
 
-						exitCode = xp.exit_code;
-						m_running = false;
-						break;
-					}
-				case CREATE_THREAD_DEBUG_EVENT:
-					{
-						ev.type = DebugEventType::CreateThread;
-						CreateThreadInfo ct{};
-						ct.start_address = reinterpret_cast<std::uint64_t>(de.u.CreateThread.lpStartAddress);
-						ev.payload = ct;
-						sinkDecision = sink.on_event(ev);
-						break;
-					}
-				case EXIT_THREAD_DEBUG_EVENT:
-					{
-						ev.type = DebugEventType::ExitThread;
-						ExitThreadInfo xt{};
-						xt.exit_code = de.u.ExitThread.dwExitCode;
-						ev.payload = xt;
-						sinkDecision = sink.on_event(ev);
-						break;
-					}
-				case EXCEPTION_DEBUG_EVENT:
-					{
-						ev.type = DebugEventType::Exception;
-						const auto& [ExceptionRecord, dwFirstChance] = de.u.Exception;
-						ExceptionInfo xi{};
-						xi.code = ExceptionRecord.ExceptionCode;
-						xi.address = reinterpret_cast<std::uint64_t>(ExceptionRecord.ExceptionAddress);
-						xi.first_chance = (dwFirstChance != 0);
-						ev.payload = xi;
-						sinkDecision = sink.on_event(ev);
-						break;
-					}
-				case LOAD_DLL_DEBUG_EVENT:
-					{
-						ev.type = DebugEventType::LoadDll;
-						const auto& ld = de.u.LoadDll;
-						LoadDllInfo li{};
-						li.base = reinterpret_cast<std::uint64_t>(ld.lpBaseOfDll);
-						li.path = resolve_module_path(ld.hFile, m_hProcess, ld.lpImageName, ld.fUnicode);
-						ev.payload = li;
+					exitCode = xp.exit_code;
+					m_running = false;
+					break;
+				}
+			case CREATE_THREAD_DEBUG_EVENT:
+				{
+					ev.type = DebugEventType::CreateThread;
+					CreateThreadInfo ct{};
+					ct.start_address = reinterpret_cast<std::uint64_t>(de.u.CreateThread.lpStartAddress);
+					ev.payload = ct;
+					sinkDecision = sink.on_event(ev);
+					break;
+				}
+			case EXIT_THREAD_DEBUG_EVENT:
+				{
+					ev.type = DebugEventType::ExitThread;
+					ExitThreadInfo xt{};
+					xt.exit_code = de.u.ExitThread.dwExitCode;
+					ev.payload = xt;
+					sinkDecision = sink.on_event(ev);
+					break;
+				}
+			case EXCEPTION_DEBUG_EVENT:
+				{
+					ev.type = DebugEventType::Exception;
+					const auto& [ExceptionRecord, dwFirstChance] = de.u.Exception;
+					ExceptionInfo xi{};
+					xi.code = ExceptionRecord.ExceptionCode;
+					xi.address = reinterpret_cast<std::uint64_t>(ExceptionRecord.ExceptionAddress);
+					xi.first_chance = (dwFirstChance != 0);
+					ev.payload = xi;
+					sinkDecision = sink.on_event(ev);
+					break;
+				}
+			case LOAD_DLL_DEBUG_EVENT:
+				{
+					ev.type = DebugEventType::LoadDll;
+					const auto& ld = de.u.LoadDll;
+					LoadDllInfo li{};
+					li.base = reinterpret_cast<std::uint64_t>(ld.lpBaseOfDll);
+					li.path = resolve_module_path(ld.hFile, m_hProcess, ld.lpImageName, ld.fUnicode);
+					ev.payload = li;
 
-						if (ld.hFile)
-							::CloseHandle(ld.hFile);
-						sinkDecision = sink.on_event(ev);
-						break;
-					}
-				case UNLOAD_DLL_DEBUG_EVENT:
-					{
-						ev.type = DebugEventType::UnloadDll;
-						UnloadDllInfo ui{};
-						ui.base = reinterpret_cast<std::uint64_t>(de.u.UnloadDll.lpBaseOfDll);
-						ev.payload = ui;
-						sinkDecision = sink.on_event(ev);
-						break;
-					}
-				case OUTPUT_DEBUG_STRING_EVENT:
-					{
-						ev.type = DebugEventType::_OutputDebugString;
-						const auto& [lpDebugStringData, fUnicode, nDebugStringLength] = de.u.DebugString;
-						OutputDebugStringInfo oi{};
-						oi.message = read_remote_string(m_hProcess, lpDebugStringData, fUnicode != 0, nDebugStringLength);
-						ev.payload = oi;
-						sinkDecision = sink.on_event(ev);
-						break;
-					}
-				case RIP_EVENT:
-					{
-						ev.type = DebugEventType::Rip;
-						RipInfo ri{};
-						ri.error = de.u.RipInfo.dwError;
-						ri.type = de.u.RipInfo.dwType;
-						ev.payload = ri;
-						sinkDecision = sink.on_event(ev);
-						break;
-					}
-				default:
-					{
-						// Unknown event: notify sink with a RIP-like container
-						ev.type = DebugEventType::Rip;
-						RipInfo ri{};
-						ri.error = 0;
-						ri.type = de.dwDebugEventCode;
-						ev.payload = ri;
-						sinkDecision = sink.on_event(ev);
-						break;
-					}
+					if (ld.hFile)
+						::CloseHandle(ld.hFile);
+					sinkDecision = sink.on_event(ev);
+					break;
+				}
+			case UNLOAD_DLL_DEBUG_EVENT:
+				{
+					ev.type = DebugEventType::UnloadDll;
+					UnloadDllInfo ui{};
+					ui.base = reinterpret_cast<std::uint64_t>(de.u.UnloadDll.lpBaseOfDll);
+					ev.payload = ui;
+					sinkDecision = sink.on_event(ev);
+					break;
+				}
+			case OUTPUT_DEBUG_STRING_EVENT:
+				{
+					ev.type = DebugEventType::_OutputDebugString;
+					const auto& [lpDebugStringData, fUnicode, nDebugStringLength] = de.u.DebugString;
+					OutputDebugStringInfo oi{};
+					oi.message = read_remote_string(m_hProcess, lpDebugStringData, fUnicode != 0, nDebugStringLength);
+					ev.payload = oi;
+					sinkDecision = sink.on_event(ev);
+					break;
+				}
+			case RIP_EVENT:
+				{
+					ev.type = DebugEventType::Rip;
+					RipInfo ri{};
+					ri.error = de.u.RipInfo.dwError;
+					ri.type = de.u.RipInfo.dwType;
+					ev.payload = ri;
+					sinkDecision = sink.on_event(ev);
+					break;
+				}
+			default:
+				{
+					// Unknown event: notify sink with a RIP-like container
+					ev.type = DebugEventType::Rip;
+					RipInfo ri{};
+					ri.error = 0;
+					ri.type = de.dwDebugEventCode;
+					ev.payload = ri;
+					sinkDecision = sink.on_event(ev);
+					break;
+				}
 			}
 
 			const DWORD cont = map_continue_code(sinkDecision, ev);
@@ -230,6 +230,11 @@ namespace gwatch
 	void WindowsProcessLauncher::stop()
 	{
 		m_requestStop = true;
+	}
+
+	void* WindowsProcessLauncher::native_process_handle() const
+	{
+		return m_hProcess;
 	}
 
 	std::wstring WindowsProcessLauncher::to_wstring(std::string_view s)
@@ -296,7 +301,7 @@ namespace gwatch
 	{
 		// Quote if empty or contains spaces/tabs or quotes.
 		const bool needQuotes = arg.empty()
-		                        || std::ranges::any_of(arg, [](const wchar_t c) { return c == L' ' || c == L'\t' || c == L'\"'; });
+			|| std::ranges::any_of(arg, [](const wchar_t c) { return c == L' ' || c == L'\t' || c == L'\"'; });
 
 		if (!needQuotes)
 			return std::wstring(arg);
@@ -354,7 +359,7 @@ namespace gwatch
 		{
 			std::wstring ws(32768, L'\0');
 			const DWORD n = ::GetFinalPathNameByHandleW(hFile, ws.data(), static_cast<DWORD>(ws.size()),
-				FILE_NAME_NORMALIZED);
+			                                            FILE_NAME_NORMALIZED);
 			if (n > 0 && n < ws.size())
 			{
 				ws.resize(n);
@@ -412,11 +417,11 @@ namespace gwatch
 		{
 			switch (const auto& ex = std::get<ExceptionInfo>(ev.payload); ex.code)
 			{
-				case EXCEPTION_BREAKPOINT:
-				case EXCEPTION_SINGLE_STEP:
-					return DBG_CONTINUE;
-				default:
-					return DBG_EXCEPTION_NOT_HANDLED;
+			case EXCEPTION_BREAKPOINT:
+			case EXCEPTION_SINGLE_STEP:
+				return DBG_CONTINUE;
+			default:
+				return DBG_EXCEPTION_NOT_HANDLED;
 			}
 		}
 
