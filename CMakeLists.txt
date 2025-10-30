@@ -13,6 +13,7 @@ set(HEADER_FILES
 	include/ProcessLauncher.h
 	include/MemoryWatcher.h
 	include/Logger.h
+	include/Application.h
 )
 
 set(SOURCE_FILES
@@ -21,6 +22,7 @@ set(SOURCE_FILES
 	src/WindowsProcessLauncher.cpp
 	src/WindowsMemoryWatcher.cpp
 	src/Logger.cpp
+	src/Application.cpp
 )
 
 set(PROJECT_LIB ${PROJECT_NAME}_lib)

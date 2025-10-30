@@ -8,6 +8,7 @@
 
 #include "Logger.h"
 #include "ProcessLauncher.h"
+#include "SymbolResolver.h"
 
 namespace gwatch
 {
@@ -36,7 +37,7 @@ namespace gwatch
 	class WindowsMemoryWatcher final : public IMemoryWatcher
 	{
 	public:
-		WindowsMemoryWatcher(void* hProcess, std::uint64_t address, std::uint32_t size, std::string symbol, Logger logger);
+		WindowsMemoryWatcher(void* hProcess, const ResolvedSymbol& resolvedSymbol, Logger logger);
 
 		~WindowsMemoryWatcher() override = default;
 
@@ -44,10 +45,7 @@ namespace gwatch
 
 	private:
 		void* m_hProcess{};
-		std::uint64_t m_addr{};
-		std::uint32_t m_size{};
-		std::string m_symbol;
-		std::ostream* m_out{};
+		ResolvedSymbol m_resolvedSymbol{};
 
 		std::optional<std::uint64_t> m_lastValue{};
 		std::unordered_set<std::uint32_t> m_armedThreads; // threads where DR0 is set

@@ -17,18 +17,16 @@ namespace gwatch
 	{
 	}
 
-	WindowsMemoryWatcher::WindowsMemoryWatcher(void* hProcess, const std::uint64_t address, const std::uint32_t size, std::string symbol, Logger logger) :
+	WindowsMemoryWatcher::WindowsMemoryWatcher(void* hProcess, const ResolvedSymbol& resolvedSymbol, Logger logger) :
 		IMemoryWatcher(std::move(logger)),
 		m_hProcess(hProcess),
-		m_addr(address),
-		m_size(size),
-		m_symbol(std::move(symbol))
+		m_resolvedSymbol(resolvedSymbol)
 	{
 		if (!m_hProcess)
 		{
 			throw MemoryWatchError("WindowsMemoryWatcher: null process handle.");
 		}
-		if (!(m_size == 4 || m_size == 8))
+		if (!(resolvedSymbol.size == 4 || resolvedSymbol.size == 8))
 		{
 			throw MemoryWatchError("WindowsMemoryWatcher: size must be 4 or 8 bytes.");
 		}
@@ -137,7 +135,7 @@ namespace gwatch
 		}
 
 #ifdef _WIN64
-		ctx.Dr0 = m_addr;
+		ctx.Dr0 = m_resolvedSymbol.address;
 #else
 		ctx.Dr0 = static_cast<DWORD>(m_addr);
 #endif
@@ -147,7 +145,7 @@ namespace gwatch
 		// - RW0 (bits 16..17) = 11b (read/write)
 		// - LEN0 (bits 18..19) = per size
 		constexpr std::uint64_t rw = 0b11ull;
-		const std::uint64_t len = len_encoding_for_size(m_size);
+		const std::uint64_t len = len_encoding_for_size(static_cast<std::uint32_t>(m_resolvedSymbol.size));
 
 #ifdef _WIN64
 		DWORD64 dr7 = ctx.Dr7;
@@ -189,12 +187,12 @@ namespace gwatch
 	{
 		std::uint64_t val = 0;
 		SIZE_T read = 0;
-		if (!::ReadProcessMemory(m_hProcess, reinterpret_cast<LPCVOID>(m_addr), &val, m_size, &read) || read != m_size)
+		if (!::ReadProcessMemory(m_hProcess, reinterpret_cast<LPCVOID>(m_resolvedSymbol.address), &val, m_resolvedSymbol.size, &read) || read != m_resolvedSymbol.size)
 		{
 			throw MemoryWatchError("ReadProcessMemory failed: " + last_error_string());
 		}
 		// Interpret as little-endian unsigned integer masked to 'size' bytes.
-		return val & mask_for_size(m_size);
+		return val & mask_for_size(static_cast<std::uint32_t>(m_resolvedSymbol.size));
 	}
 
 	ContinueStatus WindowsMemoryWatcher::handle_single_step(const std::uint32_t tid)
@@ -204,26 +202,26 @@ namespace gwatch
 		{
 			current = read_value();
 		}
-		catch (const std::exception& e)
+		catch (...)
 		{
 			return ContinueStatus::NotHandled;
 		}
 
 		if (!m_lastValue.has_value())
 		{
-			m_logger.log_read(m_symbol, current);
+			m_logger.log_read(m_resolvedSymbol.name, current);
 			m_lastValue = current;
 			return ContinueStatus::Default;
 		}
 
 		if (current != *m_lastValue)
 		{
-			m_logger.log_write(m_symbol, *m_lastValue, current);
+			m_logger.log_write(m_resolvedSymbol.name, *m_lastValue, current);
 			*m_lastValue = current;
 		}
 		else
 		{
-			m_logger.log_read(m_symbol, current);
+			m_logger.log_read(m_resolvedSymbol.name, current);
 		}
 
 		// Ensure DR0 remains armed for this thread. Normally DR state persists, but some debuggers refresh.

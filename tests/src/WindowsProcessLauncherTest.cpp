@@ -86,7 +86,7 @@ struct RecordingSink final : gwatch::IDebugEventSink
 	}
 };
 
-TEST(ProcessLauncherWindows, LaunchesAndReceivesEvents)
+TEST(WindowsProcessLauncherTest, LaunchesAndReceivesEvents)
 {
 	using namespace gwatch;
 
@@ -117,7 +117,7 @@ TEST(ProcessLauncherWindows, LaunchesAndReceivesEvents)
 	EXPECT_GE(sink.debug_msgs.size(), 2u);
 }
 
-TEST(ProcessLauncherWindows, LaunchFailsForMissingExe)
+TEST(WindowsProcessLauncherTest, LaunchFailsForMissingExe)
 {
 	using namespace gwatch;
 

@@ -54,18 +54,27 @@ namespace
 		return ev;
 	}
 
+	ResolvedSymbol create_resolve_symbol(const std::uint64_t address, const std::uint64_t size, const std::string& name)
+	{
+		return ResolvedSymbol{
+				.name = name,
+				.address = address,
+				.size = size,
+			};
+	}
+
 	// Global storage to watch via ReadProcessMemory (stable address).
 	alignas(8) volatile std::uint64_t g_watch64 = 0;
 	alignas(4) volatile std::uint32_t g_watch32 = 0;
 }
 
-TEST(MemoryWatcherWindows, ClassifiesReadAndWrite64)
+TEST(WindowsMemoryWatcherTest, ClassifiesReadAndWrite64)
 {
 	std::ostringstream oss;
 	Logger logger(oss);
 
 	g_watch64 = 0;
-	WindowsMemoryWatcher mw(::GetCurrentProcess(), reinterpret_cast<std::uint64_t>(&g_watch64), 8, "sym64", logger);
+	WindowsMemoryWatcher mw(::GetCurrentProcess(), create_resolve_symbol(reinterpret_cast<std::uint64_t>(&g_watch64), 8, "sym64"), logger);
 
 	// First SINGLE_STEP -> no previous value -> read
 	auto ev = SingleStepEvent();
@@ -89,13 +98,13 @@ TEST(MemoryWatcherWindows, ClassifiesReadAndWrite64)
 	EXPECT_EQ(oss.str(), expected);
 }
 
-TEST(MemoryWatcherWindows, ClassifiesReadAndWrite32)
+TEST(WindowsMemoryWatcherTest, ClassifiesReadAndWrite32)
 {
 	std::ostringstream oss;
 	Logger logger(oss);
 
 	g_watch32 = 10;
-	WindowsMemoryWatcher mw(::GetCurrentProcess(), reinterpret_cast<std::uint64_t>(&g_watch32), 4, "sym32", logger);
+	WindowsMemoryWatcher mw(::GetCurrentProcess(), create_resolve_symbol(reinterpret_cast<std::uint64_t>(&g_watch32), 4, "sym32"), logger);
 
 	// First -> read
 	auto st = mw.on_event(SingleStepEvent());
@@ -117,13 +126,13 @@ TEST(MemoryWatcherWindows, ClassifiesReadAndWrite32)
 	EXPECT_EQ(oss.str(), expected);
 }
 
-TEST(MemoryWatcherWindows, CreateProcessPrimesBaseline_NoInitialReadLine)
+TEST(WindowsMemoryWatcherTest, CreateProcessPrimesBaseline_NoInitialReadLine)
 {
 	std::ostringstream oss;
 	const Logger logger(oss);
 
 	g_watch64 = 42;
-	WindowsMemoryWatcher mw(::GetCurrentProcess(), reinterpret_cast<std::uint64_t>(&g_watch64), 8, "sym", logger);
+	WindowsMemoryWatcher mw(::GetCurrentProcess(), create_resolve_symbol(reinterpret_cast<std::uint64_t>(&g_watch64), 8, "sym"), logger);
 
 	// Simulate CREATE_PROCESS: watcher will try to arm thread (ignored on failure)
 	// and attempt to read baseline value (42) without logging.
@@ -136,26 +145,26 @@ TEST(MemoryWatcherWindows, CreateProcessPrimesBaseline_NoInitialReadLine)
 	EXPECT_EQ(oss.str(), "sym write 42 -> 43\n");
 }
 
-TEST(MemoryWatcherWindows, InvalidAddressReturnsNotHandledAndNoLog)
+TEST(WindowsMemoryWatcherTest, InvalidAddressReturnsNotHandledAndNoLog)
 {
 	std::ostringstream oss;
 	const Logger logger(oss);
 
 	// Intentionally invalid (null) address: ReadProcessMemory will fail.
-	WindowsMemoryWatcher mw(::GetCurrentProcess(), 0ull, 8, "bad", logger);
+	WindowsMemoryWatcher mw(::GetCurrentProcess(), create_resolve_symbol(0ull, 8, "bad"), logger);
 
 	const auto st = mw.on_event(SingleStepEvent());
 	EXPECT_EQ(st, ContinueStatus::NotHandled);
 	EXPECT_TRUE(oss.str().empty());
 }
 
-TEST(MemoryWatcherWindows, RejectsUnsupportedSize)
+TEST(WindowsMemoryWatcherTest, RejectsUnsupportedSize)
 {
 	std::ostringstream oss;
 	const Logger logger(oss);
 
 	EXPECT_THROW(
-		WindowsMemoryWatcher(::GetCurrentProcess(), reinterpret_cast<std::uint64_t>(&g_watch32), 2, "badSize", logger),
+		WindowsMemoryWatcher(::GetCurrentProcess(), create_resolve_symbol(reinterpret_cast<std::uint64_t>(&g_watch32), 2, "badSize"), logger),
 		MemoryWatchError
 	);
 }

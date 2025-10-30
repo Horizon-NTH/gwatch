@@ -54,7 +54,7 @@ namespace
 	}
 }
 
-TEST(ArgumentsParser, Parses_LongForms_WithSeparateValues)
+TEST(ArgumentsParserTest, Parses_LongForms_WithSeparateValues)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch").add("--var").add("foo").add("--exec").add("/bin/echo");
@@ -67,7 +67,7 @@ TEST(ArgumentsParser, Parses_LongForms_WithSeparateValues)
 	EXPECT_TRUE(targetArgs.empty());
 }
 
-TEST(ArgumentsParser, Parses_LongForms_WithEquals)
+TEST(ArgumentsParserTest, Parses_LongForms_WithEquals)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch").add("--var=foo").add("--exec=/usr/bin/true");
@@ -80,7 +80,7 @@ TEST(ArgumentsParser, Parses_LongForms_WithEquals)
 	EXPECT_TRUE(targetArgs.empty());
 }
 
-TEST(ArgumentsParser, Parses_ShortAliases)
+TEST(ArgumentsParserTest, Parses_ShortAliases)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch").add("-v").add("SYM").add("-e").add("/bin/false");
@@ -93,7 +93,7 @@ TEST(ArgumentsParser, Parses_ShortAliases)
 	EXPECT_TRUE(targetArgs.empty());
 }
 
-TEST(ArgumentsParser, Collects_TargetArgs_AfterSeparator)
+TEST(ArgumentsParserTest, Collects_TargetArgs_AfterSeparator)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch")
@@ -111,7 +111,7 @@ TEST(ArgumentsParser, Collects_TargetArgs_AfterSeparator)
 	EXPECT_EQ(args.targetArgs[2], "42");
 }
 
-TEST(ArgumentsParser, Help_WhenNoArgs_ShowsHelp)
+TEST(ArgumentsParserTest, Help_WhenNoArgs_ShowsHelp)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch");
@@ -121,7 +121,7 @@ TEST(ArgumentsParser, Help_WhenNoArgs_ShowsHelp)
 	EXPECT_TRUE(args.showHelp);
 }
 
-TEST(ArgumentsParser, Help_Flag_SetsShowHelp)
+TEST(ArgumentsParserTest, Help_Flag_SetsShowHelp)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch").add("--help").add("--var").add("X").add("--exec").add("/bin/echo");
@@ -131,7 +131,7 @@ TEST(ArgumentsParser, Help_Flag_SetsShowHelp)
 	EXPECT_TRUE(args.showHelp);
 }
 
-TEST(ArgumentsParser, Error_UnknownOption)
+TEST(ArgumentsParserTest, Error_UnknownOption)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch").add("--var").add("X").add("--unknown").add("--exec").add("/bin/echo");
@@ -140,7 +140,7 @@ TEST(ArgumentsParser, Error_UnknownOption)
 	expect_parse_error_contains(sp, "Unknown option");
 }
 
-TEST(ArgumentsParser, Error_PositionalBeforeSeparator)
+TEST(ArgumentsParserTest, Error_PositionalBeforeSeparator)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch").add("positional").add("--var").add("X").add("--exec").add("/bin/echo");
@@ -149,7 +149,7 @@ TEST(ArgumentsParser, Error_PositionalBeforeSeparator)
 	expect_parse_error_contains(sp, "Unexpected argument before `--`");
 }
 
-TEST(ArgumentsParser, Error_MissingExec)
+TEST(ArgumentsParserTest, Error_MissingExec)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch").add("--var").add("X");
@@ -158,7 +158,7 @@ TEST(ArgumentsParser, Error_MissingExec)
 	expect_parse_error_contains(sp, "Missing required option: --exec");
 }
 
-TEST(ArgumentsParser, Error_MissingVar)
+TEST(ArgumentsParserTest, Error_MissingVar)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch").add("--exec").add("/bin/echo");
@@ -167,7 +167,7 @@ TEST(ArgumentsParser, Error_MissingVar)
 	expect_parse_error_contains(sp, "Missing required option: --var");
 }
 
-TEST(ArgumentsParser, Error_MissingValue_ForVar)
+TEST(ArgumentsParserTest, Error_MissingValue_ForVar)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch").add("--var").add("--exec").add("/bin/echo");
@@ -176,7 +176,7 @@ TEST(ArgumentsParser, Error_MissingValue_ForVar)
 	expect_parse_error_contains(sp, "Missing value for option: --var");
 }
 
-TEST(ArgumentsParser, Error_MissingValue_ForExec)
+TEST(ArgumentsParserTest, Error_MissingValue_ForExec)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch").add("--var").add("X").add("--exec");
@@ -185,7 +185,7 @@ TEST(ArgumentsParser, Error_MissingValue_ForExec)
 	expect_parse_error_contains(sp, "Missing value for option: --exec");
 }
 
-TEST(ArgumentsParser, Error_DuplicateVar)
+TEST(ArgumentsParserTest, Error_DuplicateVar)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch").add("--var").add("X").add("--var").add("Y").add("--exec").add("/bin/echo");
@@ -194,7 +194,7 @@ TEST(ArgumentsParser, Error_DuplicateVar)
 	expect_parse_error_contains(sp, "Option specified more than once");
 }
 
-TEST(ArgumentsParser, Error_DuplicateExec)
+TEST(ArgumentsParserTest, Error_DuplicateExec)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch")
@@ -206,7 +206,7 @@ TEST(ArgumentsParser, Error_DuplicateExec)
 	expect_parse_error_contains(sp, "Option specified more than once");
 }
 
-TEST(ArgumentsParser, Error_EmptyValue_VarEquals)
+TEST(ArgumentsParserTest, Error_EmptyValue_VarEquals)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch").add("--var=").add("--exec").add("/bin/echo");
@@ -215,7 +215,7 @@ TEST(ArgumentsParser, Error_EmptyValue_VarEquals)
 	expect_parse_error_contains(sp, "Empty value for --var");
 }
 
-TEST(ArgumentsParser, Error_EmptyValue_ExecEquals)
+TEST(ArgumentsParserTest, Error_EmptyValue_ExecEquals)
 {
 	ArgvBuilder ab;
 	ab.add("gwatch").add("--var").add("X").add("--exec=");

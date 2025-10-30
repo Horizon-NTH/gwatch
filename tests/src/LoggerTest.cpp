@@ -7,7 +7,7 @@
 
 using gwatch::Logger;
 
-TEST(LoggerTests, LogRead_ExactFormat)
+TEST(LoggerTest, LogRead_ExactFormat)
 {
 	std::ostringstream oss;
 	const Logger logger(oss);
@@ -17,7 +17,7 @@ TEST(LoggerTests, LogRead_ExactFormat)
 	EXPECT_EQ(oss.str(), std::string("myVar read 42\n"));
 }
 
-TEST(LoggerTests, LogWrite_ExactFormat)
+TEST(LoggerTest, LogWrite_ExactFormat)
 {
 	std::ostringstream oss;
 	const Logger logger(oss);
@@ -27,7 +27,7 @@ TEST(LoggerTests, LogWrite_ExactFormat)
 	EXPECT_EQ(oss.str(), std::string("counter write 50 -> 100\n"));
 }
 
-TEST(LoggerTests, NoLeadingZeros)
+TEST(LoggerTest, NoLeadingZeros)
 {
 	std::ostringstream oss;
 	const Logger logger(oss);
@@ -45,7 +45,7 @@ TEST(LoggerTests, NoLeadingZeros)
 	EXPECT_EQ(out, expected);
 }
 
-TEST(LoggerTests, SupportsUint64Max)
+TEST(LoggerTest, SupportsUint64Max)
 {
 	std::ostringstream oss;
 	const Logger logger(oss);
@@ -59,7 +59,7 @@ TEST(LoggerTests, SupportsUint64Max)
 	EXPECT_EQ(oss.str(), check.str());
 }
 
-TEST(LoggerTests, MultipleCallsAppendWithNewlines)
+TEST(LoggerTest, MultipleCallsAppendWithNewlines)
 {
 	std::ostringstream oss;
 	const Logger logger(oss);

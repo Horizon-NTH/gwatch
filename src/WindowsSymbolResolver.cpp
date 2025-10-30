@@ -11,6 +11,8 @@
 
 #pragma comment(lib, "dbghelp.lib")
 
+#include <iostream>
+
 #include "SymbolResolver.h"
 
 namespace gwatch

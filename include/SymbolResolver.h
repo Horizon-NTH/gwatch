@@ -1,8 +1,10 @@
 #pragma once
 #include <cstdint>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 namespace gwatch
 {
