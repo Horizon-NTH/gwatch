@@ -70,15 +70,14 @@ namespace gwatch
 	{
 		if (!m_processLauncher)
 			throw std::runtime_error("You must attach WindowsProcessLauncher before resolving!");
-		std::unique_ptr<ISymbolResolver> resolver;
 #ifdef _WIN32
 		m_hProc = ::OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, m_processLauncher->pid());
 		if (!m_hProc)
 		{
 			throw std::runtime_error("Can't open process!");
 		}
-		resolver = std::make_unique<WindowsSymbolResolver>(m_hProc, "", true);
-		m_symbol = resolver->resolve(m_args.symbol);
+		m_resolver = std::make_unique<WindowsSymbolResolver>(m_hProc, "", true);
+		m_symbol = m_resolver->resolve(m_args.symbol);
 #endif
 	}
 
@@ -86,7 +85,7 @@ namespace gwatch
 	{
 		if (!m_hProc || !m_symbol.has_value())
 		{
-			throw std::runtime_error("You must attach te process before resolving!");
+			throw std::runtime_error("You must attach the process and resolve the symbol before setting up the watcher!");
 		}
 #ifdef _WIN32
 		m_memoryWatcher = std::make_unique<WindowsMemoryWatcher>(m_hProc, *m_symbol, Logger(std::cout));
