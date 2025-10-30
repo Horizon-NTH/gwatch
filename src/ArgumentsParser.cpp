@@ -8,7 +8,7 @@ namespace gwatch
 	{
 		CliArgs out;
 
-		size_t n = args.size();
+		std::size_t n = args.size();
 		if (n <= 1)
 		{
 			out.showHelp = true;

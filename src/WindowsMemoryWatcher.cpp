@@ -17,10 +17,11 @@ namespace gwatch
 	{
 	}
 
-	WindowsMemoryWatcher::WindowsMemoryWatcher(void* hProcess, const ResolvedSymbol& resolvedSymbol, Logger logger) :
+	WindowsMemoryWatcher::WindowsMemoryWatcher(void* hProcess, const ResolvedSymbol& resolvedSymbol, Logger logger, bool enableHardwareBreakpoints) :
 		IMemoryWatcher(std::move(logger)),
 		m_hProcess(hProcess),
-		m_resolvedSymbol(resolvedSymbol)
+		m_resolvedSymbol(resolvedSymbol),
+		m_enableHardwareBreakpoints(enableHardwareBreakpoints)
 	{
 		if (!m_hProcess)
 		{
@@ -115,6 +116,12 @@ namespace gwatch
 
 	void WindowsMemoryWatcher::install_on_thread(const std::uint32_t tid)
 	{
+		if (!m_enableHardwareBreakpoints)
+		{
+			m_armedThreads.insert(tid);
+			return;
+		}
+
 		if (m_armedThreads.contains(tid))
 			return;
 
@@ -137,7 +144,7 @@ namespace gwatch
 #ifdef _WIN64
 		ctx.Dr0 = m_resolvedSymbol.address;
 #else
-		ctx.Dr0 = static_cast<DWORD>(m_addr);
+		ctx.Dr0 = static_cast<DWORD>(m_resolvedSymbol.address);
 #endif
 
 		// Build DR7 config for slot 0:

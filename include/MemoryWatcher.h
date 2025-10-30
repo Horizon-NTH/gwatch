@@ -37,7 +37,7 @@ namespace gwatch
 	class WindowsMemoryWatcher final : public IMemoryWatcher
 	{
 	public:
-		WindowsMemoryWatcher(void* hProcess, const ResolvedSymbol& resolvedSymbol, Logger logger);
+		WindowsMemoryWatcher(void* hProcess, const ResolvedSymbol& resolvedSymbol, Logger logger, bool enableHardwareBreakpoints = true);
 
 		~WindowsMemoryWatcher() override = default;
 
@@ -46,6 +46,7 @@ namespace gwatch
 	private:
 		void* m_hProcess{};
 		ResolvedSymbol m_resolvedSymbol{};
+		bool m_enableHardwareBreakpoints{true};
 
 		std::optional<std::uint64_t> m_lastValue{};
 		std::unordered_set<std::uint32_t> m_armedThreads; // threads where DR0 is set

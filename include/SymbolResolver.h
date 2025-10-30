@@ -35,7 +35,14 @@ namespace gwatch
 	class WindowsSymbolResolver final : public ISymbolResolver
 	{
 	public:
-		explicit WindowsSymbolResolver(void* hProcess, const std::string& searchPath = {}, bool invadeProcess = true);
+		struct ModuleLoadHint
+		{
+			std::uint64_t image_base = 0;
+			std::uint64_t image_size = 0;
+			std::wstring image_path;
+		};
+
+		explicit WindowsSymbolResolver(void* hProcess, const std::string& searchPath = {}, bool invadeProcess = true, const ModuleLoadHint* hint = nullptr);
 
 		~WindowsSymbolResolver() override;
 

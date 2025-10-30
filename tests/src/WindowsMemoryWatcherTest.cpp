@@ -74,7 +74,7 @@ TEST(WindowsMemoryWatcherTest, ClassifiesReadAndWrite64)
 	Logger logger(oss);
 
 	g_watch64 = 0;
-	WindowsMemoryWatcher mw(::GetCurrentProcess(), create_resolve_symbol(reinterpret_cast<std::uint64_t>(&g_watch64), 8, "sym64"), logger);
+	WindowsMemoryWatcher mw(::GetCurrentProcess(), create_resolve_symbol(reinterpret_cast<std::uint64_t>(&g_watch64), 8, "sym64"), logger, false);
 
 	// First SINGLE_STEP -> no previous value -> read
 	auto ev = SingleStepEvent();
@@ -104,7 +104,7 @@ TEST(WindowsMemoryWatcherTest, ClassifiesReadAndWrite32)
 	Logger logger(oss);
 
 	g_watch32 = 10;
-	WindowsMemoryWatcher mw(::GetCurrentProcess(), create_resolve_symbol(reinterpret_cast<std::uint64_t>(&g_watch32), 4, "sym32"), logger);
+	WindowsMemoryWatcher mw(::GetCurrentProcess(), create_resolve_symbol(reinterpret_cast<std::uint64_t>(&g_watch32), 4, "sym32"), logger, false);
 
 	// First -> read
 	auto st = mw.on_event(SingleStepEvent());
@@ -132,7 +132,7 @@ TEST(WindowsMemoryWatcherTest, CreateProcessPrimesBaseline_NoInitialReadLine)
 	const Logger logger(oss);
 
 	g_watch64 = 42;
-	WindowsMemoryWatcher mw(::GetCurrentProcess(), create_resolve_symbol(reinterpret_cast<std::uint64_t>(&g_watch64), 8, "sym"), logger);
+	WindowsMemoryWatcher mw(::GetCurrentProcess(), create_resolve_symbol(reinterpret_cast<std::uint64_t>(&g_watch64), 8, "sym"), logger, false);
 
 	// Simulate CREATE_PROCESS: watcher will try to arm thread (ignored on failure)
 	// and attempt to read baseline value (42) without logging.
@@ -151,7 +151,7 @@ TEST(WindowsMemoryWatcherTest, InvalidAddressReturnsNotHandledAndNoLog)
 	const Logger logger(oss);
 
 	// Intentionally invalid (null) address: ReadProcessMemory will fail.
-	WindowsMemoryWatcher mw(::GetCurrentProcess(), create_resolve_symbol(0ull, 8, "bad"), logger);
+	WindowsMemoryWatcher mw(::GetCurrentProcess(), create_resolve_symbol(0ull, 8, "bad"), logger, false);
 
 	const auto st = mw.on_event(SingleStepEvent());
 	EXPECT_EQ(st, ContinueStatus::NotHandled);

@@ -20,6 +20,8 @@ namespace gwatch
 		int execute();
 
 	private:
+		class DebugLoopSink;
+
 		CliArgs m_args;
 		std::unique_ptr<IProcessLauncher> m_processLauncher;
 		std::unique_ptr<IMemoryWatcher> m_memoryWatcher;
@@ -27,7 +29,7 @@ namespace gwatch
 		void* m_hProc;
 
 		void start_process();
-		void resolve_symbol();
+		void resolve_symbol(const CreateProcessInfo& cpInfo);
 		void setup_memory_watcher();
 	};
 }

@@ -4,11 +4,11 @@
 #endif
 #define WIN32_LEAN_AND_MEAN
 
-extern "C" __declspec(dllexport) volatile long long g_counter = 0;
+long long g_counter = 0;
 
 int main()
 {
-	for (int i = 0; i < 64; i++)
+	for (int i = 0; i < 4; ++i)
 	{
 		const long long v = g_counter;
 		g_counter = v + 1;

@@ -1,13 +1,87 @@
 #include "../include/Application.h"
 
+#include <string>
+#include <stdexcept>
+#include <variant>
+
 #ifdef _WIN32
 #include <Windows.h>
 #endif
 
+namespace
+{
+#ifdef _WIN32
+	std::string win_last_error()
+	{
+		const DWORD err = ::GetLastError();
+		if (err == 0)
+			return "OK";
+		LPSTR buf = nullptr;
+		const DWORD n = ::FormatMessageA(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			nullptr, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			reinterpret_cast<LPSTR>(&buf), 0, nullptr);
+		std::string s = (n && buf) ? std::string(buf, buf + n) : "code=" + std::to_string(err);
+		if (buf)
+			::LocalFree(buf);
+		return s;
+	}
+
+	std::wstring utf16_from_utf8(const std::string& s)
+	{
+		if (s.empty())
+			return {};
+		const int needed = ::MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), nullptr, 0);
+		if (needed <= 0)
+		{
+			throw std::runtime_error("MultiByteToWideChar(size) failed: " + win_last_error());
+		}
+		std::wstring out(static_cast<std::size_t>(needed), L'\0');
+		const int written = ::MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), out.data(), needed);
+		if (written <= 0)
+		{
+			throw std::runtime_error("MultiByteToWideChar(copy) failed: " + win_last_error());
+		}
+		return out;
+	}
+#endif
+}
+
 namespace gwatch
 {
+	class Application::DebugLoopSink final : public IDebugEventSink
+	{
+	public:
+		explicit DebugLoopSink(Application& app) : m_app(app) {}
+
+		ContinueStatus on_event(const DebugEvent& ev) override
+		{
+#ifdef _WIN32
+			if (!m_app.m_memoryWatcher)
+			{
+				if (ev.type == DebugEventType::_CreateProcess)
+				{
+					const auto& cp = std::get<CreateProcessInfo>(ev.payload);
+					m_app.resolve_symbol(cp);
+					m_app.setup_memory_watcher();
+					return m_app.m_memoryWatcher->on_event(ev);
+				}
+				return ContinueStatus::Default;
+			}
+			return m_app.m_memoryWatcher->on_event(ev);
+#else
+			(void)ev;
+			return ContinueStatus::Default;
+#endif
+		}
+
+	private:
+		Application& m_app;
+	};
+
 	Application::Application(const CliArgs& args) :
-		m_args(args)
+		m_args(args),
+		m_hProc(nullptr)
 	{
 	}
 
@@ -24,9 +98,8 @@ namespace gwatch
 		try
 		{
 			start_process();
-			resolve_symbol();
-			setup_memory_watcher();
-			const std::optional<std::uint32_t> exitCode = m_processLauncher->run_debug_loop(*m_memoryWatcher);
+			DebugLoopSink sink(*this);
+			const std::optional<std::uint32_t> exitCode = m_processLauncher->run_debug_loop(sink);
 			return exitCode.value_or(0);
 		}
 		catch (const SymbolError& e)
@@ -66,7 +139,7 @@ namespace gwatch
 		m_processLauncher->launch(cfg);
 	}
 
-	void Application::resolve_symbol()
+	void Application::resolve_symbol(const CreateProcessInfo& cpInfo)
 	{
 		if (!m_processLauncher)
 			throw std::runtime_error("You must attach WindowsProcessLauncher before resolving!");
@@ -74,24 +147,35 @@ namespace gwatch
 		const auto* w = dynamic_cast<WindowsProcessLauncher*>(m_processLauncher.get());
 		if (!w) throw std::runtime_error("WindowsProcessLauncher expected");
 
-		const auto raw = w->native_process_handle();
-
-		HANDLE dup{};
-		if (!::DuplicateHandle(::GetCurrentProcess(), raw, ::GetCurrentProcess(),
-		                       &dup, 0, FALSE, DUPLICATE_SAME_ACCESS))
+		if (m_hProc)
 		{
-			throw std::runtime_error("DuplicateHandle failed");
+			::CloseHandle(m_hProc);
+			m_hProc = nullptr;
 		}
-		m_hProc = dup;
+
+		HANDLE opened = ::OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, w->pid());
+		if (!opened)
+		{
+			throw std::runtime_error("OpenProcess failed: " + win_last_error());
+		}
+		m_hProc = opened;
+
+		WindowsSymbolResolver::ModuleLoadHint hint;
+		hint.image_base = cpInfo.image_base;
+		hint.image_size = 0;
+		const std::string imagePath = !cpInfo.image_path.empty() ? cpInfo.image_path : m_args.execPath;
+		hint.image_path = utf16_from_utf8(imagePath);
 
 		const std::unique_ptr<ISymbolResolver> resolver =
-			std::make_unique<WindowsSymbolResolver>(m_hProc, "", false);
+			std::make_unique<WindowsSymbolResolver>(m_hProc, "", false, &hint);
 		m_symbol = resolver->resolve(m_args.symbol);
 #endif
 	}
 
 	void Application::setup_memory_watcher()
 	{
+		if (m_memoryWatcher)
+			return;
 		if (!m_hProc || !m_symbol.has_value())
 		{
 			throw std::runtime_error("You must attach the process and resolve the symbol before setting up the watcher!");

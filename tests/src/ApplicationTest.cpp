@@ -55,9 +55,16 @@ TEST(ApplicationTest, Execute_HappyPath_ReturnsExitCode_And_ProducesLogs)
 
 	EXPECT_EQ(rc, 123);
 	const std::string out = cap.oss.str();
-	EXPECT_NE(out.find("g_counter"), std::string::npos) << "No logs for g_counter were captured.";
-	EXPECT_NE(out.find(" read "), std::string::npos);
-	EXPECT_NE(out.find(" write "), std::string::npos);
+	const std::string expected =
+		"g_counter read 0\n"
+		"g_counter write 0 -> 1\n"
+		"g_counter read 1\n"
+		"g_counter write 1 -> 2\n"
+		"g_counter read 2\n"
+		"g_counter write 2 -> 3\n"
+		"g_counter read 3\n"
+		"g_counter write 3 -> 4\n";
+	EXPECT_EQ(out, expected);
 }
 
 TEST(ApplicationTest, Execute_MissingExecutable_Returns1)
@@ -68,7 +75,9 @@ TEST(ApplicationTest, Execute_MissingExecutable_Returns1)
 	args.targetArgs.clear();
 
 	Application app(args);
+	testing::internal::CaptureStderr();
 	const int rc = app.execute();
+	testing::internal::GetCapturedStderr();
 	EXPECT_EQ(rc, 1);
 }
 
@@ -82,7 +91,9 @@ TEST(ApplicationTest, Execute_BadSymbol_Returns1)
 	args.execPath = exe.string();
 
 	Application app(args);
+	testing::internal::CaptureStderr();
 	const int rc = app.execute();
+	testing::internal::GetCapturedStderr();
 	EXPECT_EQ(rc, 1);
 }
 
