@@ -24,6 +24,11 @@ add_executable(runTests ${TEST_SOURCES})
 target_compile_features(runTests PUBLIC cxx_std_20)
 target_link_libraries(runTests GTest::gtest_main ${PROJECT_LIB})
 
+if (MSVC)
+	target_compile_options(runTests PRIVATE /Zi $<$<CONFIG:Release>:/Od>)
+	target_link_options(runTests PRIVATE /DEBUG)
+endif ()
+
 set_target_properties(runTests PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests/bin
 )
@@ -44,7 +49,7 @@ foreach (src IN LISTS DEBUGEE_SOURCES)
 	)
 
 	if (MSVC)
-		target_compile_options(${tgt} PRIVATE /Zi)
+		target_compile_options(${tgt} PRIVATE /Zi /Od)
 		target_link_options(${tgt} PRIVATE /DEBUG)
 	else ()
 		target_compile_options(${tgt} PRIVATE -g)

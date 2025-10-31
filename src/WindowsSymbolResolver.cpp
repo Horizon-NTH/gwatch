@@ -5,16 +5,11 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <DbgHelp.h>
-#ifndef PSAPI_VERSION
-#define PSAPI_VERSION 2
-#endif
-#include <Psapi.h>
 #include <cstddef>
 #include <sstream>
 #include <vector>
 
 #pragma comment(lib, "dbghelp.lib")
-#pragma comment(lib, "psapi.lib")
 
 #include <iostream>
 
@@ -70,78 +65,21 @@ namespace gwatch
 		m_symInitialized = true;
 		if (!invadeProcess)
 		{
-			if (hint && hint->image_base != 0)
+			if (!hint || hint->image_base == 0)
 			{
-				const wchar_t* modulePath = hint->image_path.empty() ? nullptr : hint->image_path.c_str();
-				if (!SymLoadModuleExW(m_hProcess, nullptr, modulePath, nullptr,
-					hint->image_base,
-					static_cast<DWORD>(hint->image_size), nullptr, 0))
-				{
-					const DWORD err = GetLastError();
-					SymCleanup(m_hProcess);
-					m_symInitialized = false;
-					throw SymbolError(std::string("SymLoadModuleExW failed: ") + format_win_error(err));
-				}
+				SymCleanup(m_hProcess);
+				m_symInitialized = false;
+				throw SymbolError("WindowsSymbolResolver: module load hint required when invadeProcess is false.");
 			}
-			else
+
+			if (const wchar_t* modulePath = hint->image_path.empty() ? nullptr : hint->image_path.c_str(); !SymLoadModuleExW(m_hProcess, nullptr, modulePath, nullptr,
+			                                                                                                                 hint->image_base,
+			                                                                                                                 static_cast<DWORD>(hint->image_size), nullptr, 0))
 			{
-				DWORD bytesNeeded = 0;
-				const auto hProc = m_hProcess;
-				if (!EnumProcessModulesEx(hProc, nullptr, 0, &bytesNeeded, LIST_MODULES_ALL) || bytesNeeded < sizeof(HMODULE))
-				{
-					const DWORD err = GetLastError();
-					SymCleanup(m_hProcess);
-					m_symInitialized = false;
-					throw SymbolError(std::string("EnumProcessModulesEx(size) failed: ") + format_win_error(err));
-				}
-
-				const std::size_t count = bytesNeeded / sizeof(HMODULE);
-				std::vector<HMODULE> modules(count);
-				if (!EnumProcessModulesEx(hProc, modules.data(), bytesNeeded, &bytesNeeded, LIST_MODULES_ALL) || bytesNeeded < sizeof(HMODULE))
-				{
-					const DWORD err = GetLastError();
-					SymCleanup(m_hProcess);
-					m_symInitialized = false;
-					throw SymbolError(std::string("EnumProcessModulesEx(list) failed: ") + format_win_error(err));
-				}
-
-				if (!modules.empty())
-				{
-					const HMODULE hModule = modules.front();
-					wchar_t path[MAX_PATH]{};
-					if (GetModuleFileNameExW(hProc, hModule, path, MAX_PATH) == 0)
-					{
-						const DWORD err = GetLastError();
-						SymCleanup(m_hProcess);
-						m_symInitialized = false;
-						throw SymbolError(std::string("GetModuleFileNameExW failed: ") + format_win_error(err));
-					}
-
-					MODULEINFO mi{};
-					if (!GetModuleInformation(hProc, hModule, &mi, sizeof(mi)))
-					{
-						const DWORD err = GetLastError();
-						SymCleanup(m_hProcess);
-						m_symInitialized = false;
-						throw SymbolError(std::string("GetModuleInformation failed: ") + format_win_error(err));
-					}
-
-					if (!SymLoadModuleExW(m_hProcess, nullptr, path, nullptr,
-						reinterpret_cast<DWORD64>(mi.lpBaseOfDll),
-						mi.SizeOfImage, nullptr, 0))
-					{
-						const DWORD err = GetLastError();
-						SymCleanup(m_hProcess);
-						m_symInitialized = false;
-						throw SymbolError(std::string("SymLoadModuleExW failed: ") + format_win_error(err));
-					}
-				}
-				else
-				{
-					SymCleanup(m_hProcess);
-					m_symInitialized = false;
-					throw SymbolError("EnumProcessModulesEx did not return any modules.");
-				}
+				const DWORD err = GetLastError();
+				SymCleanup(m_hProcess);
+				m_symInitialized = false;
+				throw SymbolError(std::string("SymLoadModuleExW failed: ") + format_win_error(err));
 			}
 		}
 	}

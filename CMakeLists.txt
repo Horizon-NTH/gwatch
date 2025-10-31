@@ -33,7 +33,7 @@ target_include_directories(${PROJECT_LIB} PUBLIC include)
 target_compile_features(${PROJECT_LIB} PUBLIC cxx_std_20)
 
 if (WIN32)
-    target_link_libraries(${PROJECT_LIB} PUBLIC Dbghelp Psapi)
+    target_link_libraries(${PROJECT_LIB} PUBLIC Dbghelp)
 endif ()
 
 add_executable(${PROJECT_NAME} src/main.cpp)

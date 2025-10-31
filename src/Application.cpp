@@ -153,7 +153,7 @@ namespace gwatch
 			m_hProc = nullptr;
 		}
 
-		HANDLE opened = ::OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, w->pid());
+		const HANDLE opened = ::OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, w->pid());
 		if (!opened)
 		{
 			throw std::runtime_error("OpenProcess failed: " + win_last_error());
