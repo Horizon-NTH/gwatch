@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 project(gwatch VERSION 0.0)
 
 option(ENABLE_TESTS "Enable testing" OFF)
+option(GWATCH_PROFILE "Enable internal gwatch profiling instrumentation" OFF)
 
 set(HEADER_FILES
 	include/ArgumentsParser.h
@@ -14,6 +15,7 @@ set(HEADER_FILES
 	include/MemoryWatcher.h
 	include/Logger.h
 	include/Application.h
+	include/Profiling.h
 )
 
 set(SOURCE_FILES
@@ -23,6 +25,7 @@ set(SOURCE_FILES
 	src/WindowsMemoryWatcher.cpp
 	src/Logger.cpp
 	src/Application.cpp
+	src/Profiling.cpp
 )
 
 set(PROJECT_LIB ${PROJECT_NAME}_lib)
@@ -40,6 +43,11 @@ add_executable(${PROJECT_NAME} src/main.cpp)
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 target_link_libraries(${PROJECT_NAME} ${PROJECT_LIB})
+
+if (GWATCH_PROFILE)
+	target_compile_definitions(${PROJECT_LIB} PRIVATE GWATCH_PROFILE)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE GWATCH_PROFILE)
+endif ()
 
 if (ENABLE_TESTS)
 	add_subdirectory(tests)

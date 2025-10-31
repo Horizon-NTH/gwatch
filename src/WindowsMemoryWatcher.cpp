@@ -5,14 +5,16 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#include <chrono>
 #include <iomanip>
 
 #include "MemoryWatcher.h"
 #include "ProcessLauncher.h"
+#include "Profiling.h"
 
 namespace gwatch
 {
-	IMemoryWatcher::IMemoryWatcher(Logger logger) :
+	IMemoryWatcher::IMemoryWatcher(const Logger logger) :
 		m_logger(logger)
 	{
 	}
@@ -191,9 +193,17 @@ namespace gwatch
 
 	std::uint64_t WindowsMemoryWatcher::read_value() const
 	{
+#ifdef GWATCH_PROFILE
+		const auto start = std::chrono::high_resolution_clock::now();
+#endif
 		std::uint64_t val = 0;
 		SIZE_T read = 0;
-		if (!::ReadProcessMemory(m_hProcess, reinterpret_cast<LPCVOID>(m_resolvedSymbol.address), &val, m_resolvedSymbol.size, &read) || read != m_resolvedSymbol.size)
+		const BOOL ok = ::ReadProcessMemory(m_hProcess, reinterpret_cast<LPCVOID>(m_resolvedSymbol.address), &val, m_resolvedSymbol.size, &read);
+#ifdef GWATCH_PROFILE
+		const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start).count();
+		profiling::add_read_duration(static_cast<std::uint64_t>(elapsed));
+#endif
+		if (!ok || read != m_resolvedSymbol.size)
 		{
 			throw MemoryWatchError("ReadProcessMemory failed: " + last_error_string());
 		}
@@ -203,6 +213,9 @@ namespace gwatch
 
 	ContinueStatus WindowsMemoryWatcher::handle_single_step(const std::uint32_t tid)
 	{
+#ifdef GWATCH_PROFILE
+		const profiling::EventTimer eventTimer;
+#endif
 		std::uint64_t current = 0;
 		try
 		{
