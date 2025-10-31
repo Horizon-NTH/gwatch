@@ -125,8 +125,7 @@ namespace gwatch
 		if (m_armedThreads.contains(tid))
 			return;
 
-		const HANDLE hThread = ::OpenThread(THREAD_GET_CONTEXT | THREAD_SET_CONTEXT | THREAD_QUERY_INFORMATION | THREAD_SUSPEND_RESUME,
-			FALSE, tid);
+		const HANDLE hThread = ::OpenThread(THREAD_GET_CONTEXT | THREAD_SET_CONTEXT | THREAD_QUERY_INFORMATION | THREAD_SUSPEND_RESUME, FALSE, tid);
 		if (!hThread)
 		{
 			throw MemoryWatchError("OpenThread failed for TID=" + std::to_string(tid) + ": " + last_error_string());

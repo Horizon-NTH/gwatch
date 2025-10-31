@@ -44,3 +44,11 @@ jobs:
       - name: Test
         shell: pwsh
         run: ctest --test-dir ${{ steps.strings.outputs.build-output-dir }}/tests -C ${{ matrix.build_type }} --output-on-failure
+
+      - name: Performance check (Release)
+        if: matrix.build_type == 'Release'
+        shell: pwsh
+        run: |
+          scripts\perf_check.bat ^
+            --gwatch "${{ steps.strings.outputs.build-output-dir }}\Release\gwatch.exe" ^
+            --target "${{ steps.strings.outputs.build-output-dir }}\tests\bin\Release\gwatch_debuggee_stress.exe"
