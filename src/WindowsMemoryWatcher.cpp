@@ -6,12 +6,12 @@
 #include <Windows.h>
 
 #include <chrono>
-#include <iomanip>
 
 #include "MemoryWatcher.h"
 #include "ProcessLauncher.h"
 #include "Logger.h"
 #include "Profiling.h"
+#include "../include/WinUtil.h"
 
 namespace gwatch
 {
@@ -69,22 +69,6 @@ namespace gwatch
 		}
 	}
 
-	std::string WindowsMemoryWatcher::last_error_string()
-	{
-		const DWORD err = ::GetLastError();
-		if (err == 0)
-			return "OK";
-		LPSTR buf = nullptr;
-		const DWORD n = ::FormatMessageA(
-			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-			nullptr, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			reinterpret_cast<LPSTR>(&buf), 0, nullptr);
-		std::string s = (n && buf) ? std::string(buf, buf + n) : "code=" + std::to_string(err);
-		if (buf)
-			::LocalFree(buf);
-		return s;
-	}
-
 	std::uint64_t WindowsMemoryWatcher::mask_for_size(const std::uint32_t size)
 	{
 		switch (size)
@@ -123,19 +107,19 @@ namespace gwatch
 		if (m_armedThreads.contains(tid))
 			return;
 
-		const HANDLE hThread = ::OpenThread(THREAD_GET_CONTEXT | THREAD_SET_CONTEXT | THREAD_QUERY_INFORMATION | THREAD_SUSPEND_RESUME, FALSE, tid);
+		const HANDLE hThread = OpenThread(THREAD_GET_CONTEXT | THREAD_SET_CONTEXT | THREAD_QUERY_INFORMATION | THREAD_SUSPEND_RESUME, FALSE, tid);
 		if (!hThread)
 		{
-			throw MemoryWatchError("OpenThread failed for TID=" + std::to_string(tid) + ": " + last_error_string());
+			throw MemoryWatchError("OpenThread failed for TID=" + std::to_string(tid) + ": " + win::last_error_string());
 		}
 
 		CONTEXT ctx{};
 		ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;
 
-		if (!::GetThreadContext(hThread, &ctx))
+		if (!GetThreadContext(hThread, &ctx))
 		{
-			::CloseHandle(hThread);
-			throw MemoryWatchError("GetThreadContext failed for TID=" + std::to_string(tid) + ": " + last_error_string());
+			CloseHandle(hThread);
+			throw MemoryWatchError("GetThreadContext failed for TID=" + std::to_string(tid) + ": " + win::last_error_string());
 		}
 
 #ifdef _WIN64
@@ -177,13 +161,13 @@ namespace gwatch
 		ctx.Dr6 = 0;
 #endif
 
-		if (!::SetThreadContext(hThread, &ctx))
+		if (!SetThreadContext(hThread, &ctx))
 		{
-			::CloseHandle(hThread);
-			throw MemoryWatchError("SetThreadContext failed for TID=" + std::to_string(tid) + ": " + last_error_string());
+			CloseHandle(hThread);
+			throw MemoryWatchError("SetThreadContext failed for TID=" + std::to_string(tid) + ": " + win::last_error_string());
 		}
 
-		::CloseHandle(hThread);
+		CloseHandle(hThread);
 		m_armedThreads.insert(tid);
 	}
 
@@ -194,14 +178,14 @@ namespace gwatch
 #endif
 		std::uint64_t val = 0;
 		SIZE_T read = 0;
-		const BOOL ok = ::ReadProcessMemory(m_hProcess, reinterpret_cast<LPCVOID>(m_resolvedSymbol.address), &val, m_resolvedSymbol.size, &read);
+		const BOOL ok = ReadProcessMemory(m_hProcess, reinterpret_cast<LPCVOID>(m_resolvedSymbol.address), &val, m_resolvedSymbol.size, &read);
 #ifdef GWATCH_PROFILE
 		const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start).count();
 		profiling::add_read_duration(static_cast<std::uint64_t>(elapsed));
 #endif
 		if (!ok || read != m_resolvedSymbol.size)
 		{
-			throw MemoryWatchError("ReadProcessMemory failed: " + last_error_string());
+			throw MemoryWatchError("ReadProcessMemory failed: " + win::last_error_string());
 		}
 		// Interpret as little-endian unsigned integer masked to 'size' bytes.
 		return val & mask_for_size(static_cast<std::uint32_t>(m_resolvedSymbol.size));

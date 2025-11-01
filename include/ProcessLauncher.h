@@ -176,11 +176,6 @@ namespace gwatch
 		static std::string utf8_from_wstring(std::wstring_view ws);
 		static std::wstring build_command_line(const LaunchConfig& cfg);
 		static std::wstring quote_arg(std::wstring_view arg);
-		static std::string last_error_string();
-
-		static std::string resolve_module_path(void* hFile, void* hProcess, const void* remoteImageName, std::uint16_t isUnicode, std::size_t maxBytes = 32768);
-
-		static std::string read_remote_string(void* hProcess, const void* remote, bool isUnicode, std::size_t maxBytes);
 
 		static std::uint32_t map_continue_code(ContinueStatus sinkDecision, const DebugEvent& ev);
 	};

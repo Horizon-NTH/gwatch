@@ -11,40 +11,28 @@
 #include <chrono>
 #include "../include/Profiling.h"
 #endif
+#include <iostream>
+
+#include "../include/WinUtil.h"
+
 
 namespace
 {
 #ifdef _WIN32
-	std::string win_last_error()
-	{
-		const DWORD err = ::GetLastError();
-		if (err == 0)
-			return "OK";
-		LPSTR buf = nullptr;
-		const DWORD n = ::FormatMessageA(
-			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-			nullptr, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			reinterpret_cast<LPSTR>(&buf), 0, nullptr);
-		std::string s = (n && buf) ? std::string(buf, buf + n) : "code=" + std::to_string(err);
-		if (buf)
-			::LocalFree(buf);
-		return s;
-	}
-
 	std::wstring utf16_from_utf8(const std::string& s)
 	{
 		if (s.empty())
 			return {};
-		const int needed = ::MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), nullptr, 0);
+		const int needed = MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), nullptr, 0);
 		if (needed <= 0)
 		{
-			throw std::runtime_error("MultiByteToWideChar(size) failed: " + win_last_error());
+			throw std::runtime_error("MultiByteToWideChar(size) failed: " + gwatch::win::last_error_string());
 		}
 		std::wstring out(static_cast<std::size_t>(needed), L'\0');
-		const int written = ::MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), out.data(), needed);
+		const int written = MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), out.data(), needed);
 		if (written <= 0)
 		{
-			throw std::runtime_error("MultiByteToWideChar(copy) failed: " + win_last_error());
+			throw std::runtime_error("MultiByteToWideChar(copy) failed: " + gwatch::win::last_error_string());
 		}
 		return out;
 	}
@@ -93,7 +81,7 @@ namespace gwatch
 	{
 		if (m_hProc)
 		{
-			::CloseHandle(m_hProc);
+			CloseHandle(m_hProc);
 		}
 	}
 
@@ -163,14 +151,14 @@ namespace gwatch
 
 		if (m_hProc)
 		{
-			::CloseHandle(m_hProc);
+			CloseHandle(m_hProc);
 			m_hProc = nullptr;
 		}
 
-		const HANDLE opened = ::OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, w->pid());
+		const HANDLE opened = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, w->pid());
 		if (!opened)
 		{
-			throw std::runtime_error("OpenProcess failed: " + win_last_error());
+			throw std::runtime_error("OpenProcess failed: " + win::last_error_string());
 		}
 		m_hProc = opened;
 

@@ -1,12 +1,9 @@
 #pragma once
 #include <cstdint>
-#include <iostream>
-#include <string>
 #include <optional>
 #include <unordered_set>
 #include <stdexcept>
 
-#include "Logger.h"
 #include "ProcessLauncher.h"
 #include "SymbolResolver.h"
 
@@ -48,7 +45,6 @@ namespace gwatch
 		std::optional<std::uint64_t> m_lastValue{};
 		std::unordered_set<std::uint32_t> m_armedThreads;
 
-		static std::string last_error_string();
 		static std::uint64_t mask_for_size(std::uint32_t size);
 		static std::uint64_t len_encoding_for_size(std::uint32_t size);
 

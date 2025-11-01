@@ -37,7 +37,6 @@ namespace
 		return instance;
 	}
 
-	// Capture the program start time for total runtime reporting
 	const auto g_program_start = std::chrono::high_resolution_clock::now();
 
 	class Reporter
@@ -74,15 +73,12 @@ namespace
 
 			std::cerr << std::fixed << std::setprecision(3);
 
-			// Always print total program runtime
 			const auto now = std::chrono::high_resolution_clock::now();
 			const auto total_prog_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now - g_program_start).count();
 			std::cerr << "[profiling] program total: " << to_ms(total_prog_ns) << " ms\n";
 
-			// If there were no events, skip the rest of the detailed report
 			if (events == 0)
 				return;
-			// Program phases
 			const auto total_launch_ns = stats().launch_ns.load(std::memory_order_relaxed);
 			const auto total_resolve_ns = stats().resolve_ns.load(std::memory_order_relaxed);
 			const auto total_setup_ns = stats().setup_ns.load(std::memory_order_relaxed);
@@ -90,7 +86,6 @@ namespace
 			if (total_resolve_ns > 0) std::cerr << "[profiling] resolve total=" << to_ms(total_resolve_ns) << " ms\n";
 			if (total_setup_ns > 0) std::cerr << "[profiling] setup total=" << to_ms(total_setup_ns) << " ms\n";
 
-			// Debug loop timings
 			const auto iters = stats().loop_iters.load(std::memory_order_relaxed);
 			const auto wait_ns = stats().loop_wait_ns.load(std::memory_order_relaxed);
 			const auto handle_ns = stats().loop_handle_ns.load(std::memory_order_relaxed);
@@ -113,7 +108,6 @@ namespace
 			std::cerr << "[profiling] other handler time total="
 				<< to_ms(std::max<long long>(0, leftover_ns)) << " ms\n";
 
-			// If we have loop handler timing, show non-sink overhead in the loop
 			if (iters > 0) {
 				const auto loop_overhead_ns = std::max<long long>(0, handle_ns - total_event_ns);
 				std::cerr << "[profiling] loop non-sink overhead total=" << to_ms(loop_overhead_ns) << " ms\n";

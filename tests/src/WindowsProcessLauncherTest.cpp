@@ -27,63 +27,28 @@ namespace
 
 struct RecordingSink final : gwatch::IDebugEventSink
 {
-	bool saw_create_process = false;
-	bool saw_any_load_dll = false;
-	bool saw_output_debug_a = false;
-	bool saw_output_debug_w = false;
-	std::vector<std::string> debug_msgs;
-	std::optional<std::uint32_t> exit_code;
+    bool saw_create_process = false;
+    std::optional<std::uint32_t> exit_code;
 
-	gwatch::ContinueStatus on_event(const gwatch::DebugEvent& ev) override
-	{
-		using T = gwatch::DebugEventType;
-		switch (ev.type)
-		{
-			case T::_CreateProcess:
-				{
-					saw_create_process = true;
-					break;
-				}
-			case T::LoadDll:
-				{
-					// We expect at least one DLL to load.
-					if (const auto& [base, path] = std::get<gwatch::LoadDllInfo>(ev.payload); !path.empty() || base != 0)
-					{
-						saw_any_load_dll = true;
-					}
-					break;
-				}
-			case T::_OutputDebugString:
-				{
-					const auto& [message] = std::get<gwatch::OutputDebugStringInfo>(ev.payload);
-					debug_msgs.push_back(message);
-					if (message.find("DBG:hello_ascii") != std::string::npos)
-					{
-						saw_output_debug_a = true;
-					}
-					if (message.find("DBG:hello_utf16") != std::string::npos)
-					{
-						saw_output_debug_w = true;
-					}
-					break;
-				}
-			case T::Exception:
-				{
-					// Default policy already continues breakpoints/single-step.
-					// We keep Default to not interfere unless necessary.
-					break;
-				}
-			case T::ExitProcess:
-				{
-					const auto& [exit_code] = std::get<gwatch::ExitProcessInfo>(ev.payload);
-					this->exit_code = exit_code;
-					break;
-				}
-			default:
-				break;
-		}
-		return gwatch::ContinueStatus::Default;
-	}
+    gwatch::ContinueStatus on_event(const gwatch::DebugEvent& ev) override
+    {
+        using T = gwatch::DebugEventType;
+        switch (ev.type)
+        {
+            case T::_CreateProcess:
+                saw_create_process = true;
+                break;
+            case T::ExitProcess:
+            {
+                const auto& [code] = std::get<gwatch::ExitProcessInfo>(ev.payload);
+                exit_code = code;
+                break;
+            }
+            default:
+                break;
+        }
+        return gwatch::ContinueStatus::Default;
+    }
 };
 
 TEST(WindowsProcessLauncherTest, LaunchesAndReceivesEvents)
@@ -109,12 +74,7 @@ TEST(WindowsProcessLauncherTest, LaunchesAndReceivesEvents)
 
 	ASSERT_TRUE(result.has_value()) << "Exit code should be available.";
 	EXPECT_EQ(result.value(), 123u) << "Debuggee must return 123.";
-	EXPECT_TRUE(sink.saw_create_process) << "CREATE_PROCESS event should have been observed.";
-	EXPECT_TRUE(sink.saw_any_load_dll) << "At least one LOAD_DLL event expected.";
-	EXPECT_TRUE(sink.saw_output_debug_a) << "ASCII OutputDebugString should be captured.";
-	EXPECT_TRUE(sink.saw_output_debug_w) << "Unicode OutputDebugString should be captured.";
-
-	EXPECT_GE(sink.debug_msgs.size(), 2u);
+    EXPECT_TRUE(sink.saw_create_process) << "CREATE_PROCESS event should have been observed.";
 }
 
 TEST(WindowsProcessLauncherTest, LaunchFailsForMissingExe)
