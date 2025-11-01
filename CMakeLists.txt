@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.14)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-project(gwatch VERSION 0.0)
+project(gwatch VERSION 1.0)
 
 option(ENABLE_TESTS "Enable testing" OFF)
 option(GWATCH_PROFILE "Enable internal gwatch profiling instrumentation" OFF)
@@ -43,6 +43,9 @@ add_executable(${PROJECT_NAME} src/main.cpp)
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 target_link_libraries(${PROJECT_NAME} ${PROJECT_LIB})
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
 
 if (GWATCH_PROFILE)
 	target_compile_definitions(${PROJECT_LIB} PRIVATE GWATCH_PROFILE)

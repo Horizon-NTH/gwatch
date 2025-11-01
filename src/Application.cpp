@@ -80,10 +80,12 @@ namespace gwatch
 
 	Application::~Application()
 	{
+#if _WIN32
 		if (m_hProc)
 		{
 			CloseHandle(m_hProc);
 		}
+#endif
 	}
 
 	int Application::execute()

@@ -1,9 +1,3 @@
-#ifdef _WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#define WIN32_LEAN_AND_MEAN
-
 long long g_counter = 0;
 
 int main()
@@ -15,6 +9,3 @@ int main()
 	}
 	return 123;
 }
-#else
-int main() { return 0; }
-#endif

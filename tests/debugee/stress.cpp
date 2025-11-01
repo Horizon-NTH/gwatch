@@ -1,9 +1,3 @@
-#ifdef _WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#define WIN32_LEAN_AND_MEAN
-
 #include <cstdint>
 
 std::int64_t g_counter = 0;
@@ -22,7 +16,3 @@ int main()
 	}
 	return 0;
 }
-
-#else
-int main() { return 0; }
-#endif
