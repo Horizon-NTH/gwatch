@@ -12,6 +12,10 @@
 #include <iomanip>
 #include <algorithm>
 #include <cstdint>
+#ifdef GWATCH_PROFILE
+#include <chrono>
+#include "../include/Profiling.h"
+#endif
 
 #include "ProcessLauncher.h"
 
@@ -88,16 +92,26 @@ namespace gwatch
 
 		while (!m_requestStop)
 		{
+			#ifdef GWATCH_PROFILE
+			const auto wait_start = std::chrono::high_resolution_clock::now();
+			#endif
 			if (!::WaitForDebugEvent(&de, kWaitMs))
 			{
 				throw ProcessError("WaitForDebugEvent failed: " + last_error_string());
 			}
+			#ifdef GWATCH_PROFILE
+			const auto wait_end = std::chrono::high_resolution_clock::now();
+			profiling::add_loop_wait_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(wait_end - wait_start).count());
+			#endif
 
 			DebugEvent ev{};
 			ev.process_id = de.dwProcessId;
 			ev.thread_id = de.dwThreadId;
 
 			auto sinkDecision = ContinueStatus::Default;
+			#ifdef GWATCH_PROFILE
+			const auto handle_start = std::chrono::high_resolution_clock::now();
+			#endif
 
 			switch (de.dwDebugEventCode)
 			{
@@ -217,6 +231,12 @@ namespace gwatch
 
 			const DWORD cont = map_continue_code(sinkDecision, ev);
 			::ContinueDebugEvent(de.dwProcessId, de.dwThreadId, cont);
+
+			#ifdef GWATCH_PROFILE
+			const auto handle_end = std::chrono::high_resolution_clock::now();
+			profiling::add_loop_handle_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(handle_end - handle_start).count());
+			profiling::inc_loop_iteration();
+			#endif
 
 			if (de.dwDebugEventCode == EXIT_PROCESS_DEBUG_EVENT)
 			{

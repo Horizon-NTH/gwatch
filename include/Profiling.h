@@ -26,6 +26,14 @@ namespace gwatch::profiling
 
 	void add_read_duration(std::uint64_t nanoseconds);
 	void add_log_duration(std::uint64_t nanoseconds);
+
+	// Program phases and loop timings
+	void add_process_launch_duration(std::uint64_t nanoseconds);
+	void add_symbol_resolve_duration(std::uint64_t nanoseconds);
+	void add_setup_watcher_duration(std::uint64_t nanoseconds);
+	void add_loop_wait_duration(std::uint64_t nanoseconds);
+	void add_loop_handle_duration(std::uint64_t nanoseconds);
+	void inc_loop_iteration();
 #else
 	class EventTimer
 	{
@@ -35,5 +43,11 @@ namespace gwatch::profiling
 
 	inline void add_read_duration(std::uint64_t) {}
 	inline void add_log_duration(std::uint64_t) {}
+    inline void add_process_launch_duration(std::uint64_t) {}
+    inline void add_symbol_resolve_duration(std::uint64_t) {}
+    inline void add_setup_watcher_duration(std::uint64_t) {}
+    inline void add_loop_wait_duration(std::uint64_t) {}
+    inline void add_loop_handle_duration(std::uint64_t) {}
+    inline void inc_loop_iteration() {}
 #endif
 }

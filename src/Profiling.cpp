@@ -19,6 +19,16 @@ namespace
 		std::atomic<long long> event_ns{0};
 		std::atomic<long long> read_ns{0};
 		std::atomic<long long> log_ns{0};
+
+		// Program phases
+		std::atomic<long long> launch_ns{0};
+		std::atomic<long long> resolve_ns{0};
+		std::atomic<long long> setup_ns{0};
+
+		// Debug loop timings
+		std::atomic<std::uint64_t> loop_iters{0};
+		std::atomic<long long> loop_wait_ns{0};
+		std::atomic<long long> loop_handle_ns{0};
 	};
 
 	ProfilingStats& stats()
@@ -26,6 +36,9 @@ namespace
 		static ProfilingStats instance;
 		return instance;
 	}
+
+	// Capture the program start time for total runtime reporting
+	const auto g_program_start = std::chrono::high_resolution_clock::now();
 
 	class Reporter
 	{
@@ -38,8 +51,6 @@ namespace
 		static void dump()
 		{
 			const auto events = stats().event_count.load(std::memory_order_relaxed);
-			if (events == 0)
-				return;
 
 			const auto reads = stats().read_count.load(std::memory_order_relaxed);
 			const auto logs = stats().log_count.load(std::memory_order_relaxed);
@@ -62,6 +73,34 @@ namespace
 			};
 
 			std::cerr << std::fixed << std::setprecision(3);
+
+			// Always print total program runtime
+			const auto now = std::chrono::high_resolution_clock::now();
+			const auto total_prog_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now - g_program_start).count();
+			std::cerr << "[profiling] program total: " << to_ms(total_prog_ns) << " ms\n";
+
+			// If there were no events, skip the rest of the detailed report
+			if (events == 0)
+				return;
+			// Program phases
+			const auto total_launch_ns = stats().launch_ns.load(std::memory_order_relaxed);
+			const auto total_resolve_ns = stats().resolve_ns.load(std::memory_order_relaxed);
+			const auto total_setup_ns = stats().setup_ns.load(std::memory_order_relaxed);
+			if (total_launch_ns > 0) std::cerr << "[profiling] launch total=" << to_ms(total_launch_ns) << " ms\n";
+			if (total_resolve_ns > 0) std::cerr << "[profiling] resolve total=" << to_ms(total_resolve_ns) << " ms\n";
+			if (total_setup_ns > 0) std::cerr << "[profiling] setup total=" << to_ms(total_setup_ns) << " ms\n";
+
+			// Debug loop timings
+			const auto iters = stats().loop_iters.load(std::memory_order_relaxed);
+			const auto wait_ns = stats().loop_wait_ns.load(std::memory_order_relaxed);
+			const auto handle_ns = stats().loop_handle_ns.load(std::memory_order_relaxed);
+			if (iters > 0) {
+				std::cerr << "[profiling] debug loop: iters=" << iters
+					<< " wait_total=" << to_ms(wait_ns) << " ms"
+					<< " handle_total=" << to_ms(handle_ns) << " ms"
+					<< " handle_avg=" << safe_avg(handle_ns, iters) / 1'000'000.0 << " ms\n";
+			}
+
 			std::cerr << "[profiling] events: " << events
 				<< " total=" << to_ms(total_event_ns) << " ms"
 				<< " avg=" << safe_avg(total_event_ns, events) / 1'000'000.0 << " ms\n";
@@ -73,6 +112,12 @@ namespace
 				<< " avg=" << safe_avg(total_log_ns, logs) / 1'000.0 << " us\n";
 			std::cerr << "[profiling] other handler time total="
 				<< to_ms(std::max<long long>(0, leftover_ns)) << " ms\n";
+
+			// If we have loop handler timing, show non-sink overhead in the loop
+			if (iters > 0) {
+				const auto loop_overhead_ns = std::max<long long>(0, handle_ns - total_event_ns);
+				std::cerr << "[profiling] loop non-sink overhead total=" << to_ms(loop_overhead_ns) << " ms\n";
+			}
 		}
 	};
 
@@ -109,6 +154,36 @@ namespace gwatch::profiling
 	{
 		stats().log_count.fetch_add(1, std::memory_order_relaxed);
 		stats().log_ns.fetch_add(static_cast<long long>(nanoseconds), std::memory_order_relaxed);
+	}
+
+	void add_process_launch_duration(const std::uint64_t nanoseconds)
+	{
+		stats().launch_ns.fetch_add(static_cast<long long>(nanoseconds), std::memory_order_relaxed);
+	}
+
+	void add_symbol_resolve_duration(const std::uint64_t nanoseconds)
+	{
+		stats().resolve_ns.fetch_add(static_cast<long long>(nanoseconds), std::memory_order_relaxed);
+	}
+
+	void add_setup_watcher_duration(const std::uint64_t nanoseconds)
+	{
+		stats().setup_ns.fetch_add(static_cast<long long>(nanoseconds), std::memory_order_relaxed);
+	}
+
+	void add_loop_wait_duration(const std::uint64_t nanoseconds)
+	{
+		stats().loop_wait_ns.fetch_add(static_cast<long long>(nanoseconds), std::memory_order_relaxed);
+	}
+
+	void add_loop_handle_duration(const std::uint64_t nanoseconds)
+	{
+		stats().loop_handle_ns.fetch_add(static_cast<long long>(nanoseconds), std::memory_order_relaxed);
+	}
+
+	void inc_loop_iteration()
+	{
+		stats().loop_iters.fetch_add(1, std::memory_order_relaxed);
 	}
 }
 

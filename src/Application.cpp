@@ -7,6 +7,10 @@
 #ifdef _WIN32
 #include <Windows.h>
 #endif
+#ifdef GWATCH_PROFILE
+#include <chrono>
+#include "../include/Profiling.h"
+#endif
 
 namespace
 {
@@ -136,13 +140,23 @@ namespace gwatch
 			.suspended = false,
 			.debug_children = false,
 		};
+		#ifdef GWATCH_PROFILE
+		const auto launch_start = std::chrono::high_resolution_clock::now();
+		#endif
 		m_processLauncher->launch(cfg);
+		#ifdef GWATCH_PROFILE
+		const auto launch_end = std::chrono::high_resolution_clock::now();
+		profiling::add_process_launch_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(launch_end - launch_start).count());
+		#endif
 	}
 
 	void Application::resolve_symbol(const CreateProcessInfo& cpInfo)
 	{
 		if (!m_processLauncher)
 			throw std::runtime_error("You must attach WindowsProcessLauncher before resolving!");
+#ifdef GWATCH_PROFILE
+		const auto resolve_start = std::chrono::high_resolution_clock::now();
+#endif
 #ifdef _WIN32
 		const auto* w = dynamic_cast<WindowsProcessLauncher*>(m_processLauncher.get());
 		if (!w) throw std::runtime_error("WindowsProcessLauncher expected");
@@ -170,6 +184,10 @@ namespace gwatch
 			std::make_unique<WindowsSymbolResolver>(m_hProc, "", false, &hint);
 		m_symbol = resolver->resolve(m_args.symbol);
 #endif
+#ifdef GWATCH_PROFILE
+		const auto resolve_end = std::chrono::high_resolution_clock::now();
+		profiling::add_symbol_resolve_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(resolve_end - resolve_start).count());
+#endif
 	}
 
 	void Application::setup_memory_watcher()
@@ -181,7 +199,14 @@ namespace gwatch
 			throw std::runtime_error("You must attach the process and resolve the symbol before setting up the watcher!");
 		}
 #ifdef _WIN32
+		#ifdef GWATCH_PROFILE
+		const auto setup_start = std::chrono::high_resolution_clock::now();
+		#endif
 		m_memoryWatcher = std::make_unique<WindowsMemoryWatcher>(m_hProc, *m_symbol, Logger(std::cout));
+		#ifdef GWATCH_PROFILE
+		const auto setup_end = std::chrono::high_resolution_clock::now();
+		profiling::add_setup_watcher_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(setup_end - setup_start).count());
+		#endif
 #endif
 	}
 }
