@@ -1,8 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <string_view>
-#include <ostream>
-#include <memory>
+#include <cstdio>
 
 namespace gwatch
 {
@@ -13,13 +12,7 @@ namespace gwatch
 	class Logger
 	{
 	public:
-		explicit Logger(std::ostream& os);
-
-		void log_read(std::string_view symbol, std::uint64_t value) const;
-
-		void log_write(std::string_view symbol, std::uint64_t old_value, std::uint64_t new_value) const;
-
-	private:
-		std::ostream* m_os;
+		static void log_read(std::string_view symbol, std::uint64_t value);
+		static void log_write(std::string_view symbol, std::uint64_t old_value, std::uint64_t new_value);
 	};
 }

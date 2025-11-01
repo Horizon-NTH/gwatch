@@ -29,21 +29,12 @@ namespace
 	}
 }
 
-// RAII to redirect std::cout to a buffer (to capture MemoryWatcher/Logger output).
-struct CoutRedirect
-{
-	std::streambuf* old = nullptr;
-	std::ostringstream oss;
-	CoutRedirect() { old = std::cout.rdbuf(oss.rdbuf()); }
-	~CoutRedirect() { std::cout.rdbuf(old); }
-};
-
 TEST(ApplicationTest, Execute_HappyPath_ReturnsExitCode_And_ProducesLogs)
 {
 	const auto exe = (CurrentBinDir() / "gwatch_debuggee_app.exe");
 	ASSERT_TRUE(std::filesystem::exists(exe)) << "Debuggee not found at: " << exe.string();
 
-	CoutRedirect cap;
+	testing::internal::CaptureStdout();
 
 	CliArgs args;
 	args.symbol = "g_counter";
@@ -54,7 +45,7 @@ TEST(ApplicationTest, Execute_HappyPath_ReturnsExitCode_And_ProducesLogs)
 	const int rc = app.execute();
 
 	EXPECT_EQ(rc, 123);
-	const std::string out = cap.oss.str();
+	const std::string out = testing::internal::GetCapturedStdout();
 	const std::string expected =
 		"g_counter read 0\n"
 		"g_counter write 0 -> 1\n"

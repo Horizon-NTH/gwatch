@@ -198,11 +198,12 @@ namespace gwatch
 		{
 			throw std::runtime_error("You must attach the process and resolve the symbol before setting up the watcher!");
 		}
+
 #ifdef _WIN32
 		#ifdef GWATCH_PROFILE
 		const auto setup_start = std::chrono::high_resolution_clock::now();
 		#endif
-		m_memoryWatcher = std::make_unique<WindowsMemoryWatcher>(m_hProc, *m_symbol, Logger(std::cout));
+		m_memoryWatcher = std::make_unique<WindowsMemoryWatcher>(m_hProc, *m_symbol);
 		#ifdef GWATCH_PROFILE
 		const auto setup_end = std::chrono::high_resolution_clock::now();
 		profiling::add_setup_watcher_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(setup_end - setup_start).count());

@@ -21,11 +21,8 @@ namespace gwatch
 	class IMemoryWatcher : public IDebugEventSink
 	{
 	public:
-		explicit IMemoryWatcher(Logger logger);
+		IMemoryWatcher() = default;
 		~IMemoryWatcher() override = default;
-
-	protected:
-		Logger m_logger;
 	};
 
 #ifdef _WIN32
@@ -37,7 +34,7 @@ namespace gwatch
 	class WindowsMemoryWatcher final : public IMemoryWatcher
 	{
 	public:
-		WindowsMemoryWatcher(void* hProcess, const ResolvedSymbol& resolvedSymbol, Logger logger, bool enableHardwareBreakpoints = true);
+		WindowsMemoryWatcher(void* hProcess, const ResolvedSymbol& resolvedSymbol, bool enableHardwareBreakpoints = true);
 
 		~WindowsMemoryWatcher() override = default;
 
@@ -49,18 +46,14 @@ namespace gwatch
 		bool m_enableHardwareBreakpoints{true};
 
 		std::optional<std::uint64_t> m_lastValue{};
-		std::unordered_set<std::uint32_t> m_armedThreads; // threads where DR0 is set
+		std::unordered_set<std::uint32_t> m_armedThreads;
 
 		static std::string last_error_string();
 		static std::uint64_t mask_for_size(std::uint32_t size);
-		static std::uint64_t len_encoding_for_size(std::uint32_t size); // DR7 LEN field
+		static std::uint64_t len_encoding_for_size(std::uint32_t size);
 
-		// Install DR0 watchpoint on a given thread
 		void install_on_thread(std::uint32_t tid);
-
-		// Read current value from the target address
 		std::uint64_t read_value() const;
-
 		ContinueStatus handle_single_step(std::uint32_t tid);
 	};
 

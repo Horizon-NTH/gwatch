@@ -10,17 +10,13 @@
 
 #include "MemoryWatcher.h"
 #include "ProcessLauncher.h"
+#include "Logger.h"
 #include "Profiling.h"
 
 namespace gwatch
 {
-	IMemoryWatcher::IMemoryWatcher(const Logger logger) :
-		m_logger(logger)
-	{
-	}
-
-	WindowsMemoryWatcher::WindowsMemoryWatcher(void* hProcess, const ResolvedSymbol& resolvedSymbol, Logger logger, bool enableHardwareBreakpoints) :
-		IMemoryWatcher(std::move(logger)),
+	WindowsMemoryWatcher::WindowsMemoryWatcher(void* hProcess, const ResolvedSymbol& resolvedSymbol, bool enableHardwareBreakpoints) :
+		IMemoryWatcher(),
 		m_hProcess(hProcess),
 		m_resolvedSymbol(resolvedSymbol),
 		m_enableHardwareBreakpoints(enableHardwareBreakpoints)
@@ -228,19 +224,19 @@ namespace gwatch
 
 		if (!m_lastValue.has_value())
 		{
-			m_logger.log_read(m_resolvedSymbol.name, current);
+			Logger::log_read(m_resolvedSymbol.name, current);
 			m_lastValue = current;
 			return ContinueStatus::Default;
 		}
 
 		if (current != *m_lastValue)
 		{
-			m_logger.log_write(m_resolvedSymbol.name, *m_lastValue, current);
+			Logger::log_write(m_resolvedSymbol.name, *m_lastValue, current);
 			*m_lastValue = current;
 		}
 		else
 		{
-			m_logger.log_read(m_resolvedSymbol.name, current);
+			Logger::log_read(m_resolvedSymbol.name, current);
 		}
 
 		// Ensure DR0 remains armed for this thread. Normally DR state persists, but some debuggers refresh.
