@@ -68,7 +68,7 @@ namespace gwatch
 
             if (!ok)
             {
-                throw ProcessError("CreateProcessW failed: " + win::last_error_string());
+                throw ProcessError(std::string("Failed to launch '") + cfg.exe_path + "': CreateProcessW failed: " + win::last_error_string());
             }
 
 		m_hProcess = pi.hProcess;

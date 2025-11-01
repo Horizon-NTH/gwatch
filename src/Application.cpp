@@ -3,6 +3,7 @@
 #include <string>
 #include <stdexcept>
 #include <variant>
+#include <sstream>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -170,7 +171,18 @@ namespace gwatch
 
 		const std::unique_ptr<ISymbolResolver> resolver =
 			std::make_unique<WindowsSymbolResolver>(m_hProc, "", false, &hint);
-		m_symbol = resolver->resolve(m_args.symbol);
+		try
+		{
+			m_symbol = resolver->resolve(m_args.symbol);
+		}
+		catch (const SymbolError& inner)
+		{
+			std::ostringstream oss;
+			oss << "Failed to resolve symbol '" << m_args.symbol << "' in target '" << imagePath << "'.\n"
+				<< "Details: " << inner.what() << "\n"
+				<< "Hint: verify the global variable name, that symbols/PDB are available, and that it is a 4–8 byte integer.";
+			throw SymbolError(oss.str());
+		}
 #endif
 #ifdef GWATCH_PROFILE
 		const auto resolve_end = std::chrono::high_resolution_clock::now();
