@@ -9,9 +9,13 @@
 
 gwatch is a command-line Global Variable Watcher. It launches a target process and prints every read and write access to a specified global variable (integer type, 4–8 bytes) to stdout.
 
-> [!CAUTION]
+> [!CAUTION]  
 > This program is **Windows-only** and has been tested exclusively with the **MSVC** compiler.  
 > It relies on the **Windows Debugging API**, specifically hardware data breakpoints (DR0–DR7).
+
+> [!IMPORTANT]  
+> On Windows, prefer running the PowerShell scripts (`scripts/build.ps1`, `scripts/demo.ps1`).
+> They assume you are in a PowerShell session with the development toolchain available (see [Requirements](#requirements)).
 
 ## Table of Contents
 
@@ -41,6 +45,13 @@ gwatch is a command-line Global Variable Watcher. It launches a target process a
 - Build system: CMake 3.14+
 - Libraries: DbgHelp (bundled with the Windows SDK/Visual Studio)
 - Scripts: PowerShell 5+ (Windows PowerShell) or PowerShell 7+ (pwsh)
+- Shell environment (recommended):
+  - Use "Developer PowerShell for VS 2019/2022" or "x64 Native Tools Command Prompt for VS" so that:
+    - `cmake` is on PATH
+    - MSVC tools (`cl`, `link`) are on PATH
+    - The Windows SDK is set up
+  - If using plain PowerShell, ensure the above tools are available on PATH.
+  - Bash scripts are intended for WSL/MSYS, they may not set up MSVC correctly and can result in failures.
 - Optional: GoogleTest (fetched automatically when `-DENABLE_TESTS=ON`)
 
 ## Installation
@@ -54,8 +65,8 @@ cd gwatch
 
 ### Build
 
-> [!TIP]
-> You can directly run the [demo-script](#demo-script), it will build and automatically test the program on some examples.
+> [!TIP]  
+> You can directly run the [demo script](#demo-script), it will build and automatically test the program with some examples.
 
 With CMake directly:
 
@@ -74,6 +85,9 @@ scripts\build.ps1 -Config Release [-Tests]
 ```bash
 scripts/build.sh --config Release [--tests]
 ```
+
+> [!NOTE]  
+> Prefer using the PowerShell scripts from a developer shell to avoid unintended behavior.
 
 Artifacts are written to `build/bin` or `build/<Config>` depending on the generator.
 
@@ -119,7 +133,7 @@ scripts\demo.ps1 -Config Release
 ```
 
 ```bash
-scripts/demo.sh --config Release --iters 20000
+scripts/demo.sh --config Release
 ```
 
 ## Tests
@@ -169,13 +183,13 @@ Profiling output goes to stderr so it never mixes with the required stdout acces
 
 - Launch: The target is started under the Windows Debugging API (`DEBUG_ONLY_THIS_PROCESS`).
 - Symbol resolution: On the initial create‑process event, DbgHelp (`SymInitialize`, `SymFromName`, `SymGetTypeInfo` with `TI_GET_LENGTH`) resolves the global’s address and size (must be 4 or 8 bytes).
-- Watchpoints: For each thread, a hardware data breakpoint is set in DR0 and enabled in DR7 (local enable). RW is configured to read/write, LEN matches 4 or 8 bytes and DR6 is cleared.
+- Watchpoints: For each thread, a hardware data breakpoint is set in DR0 and enabled in DR7 (local enable). RW is configured to read/write, LEN matches 4 or 8 bytes, and DR6 is cleared.
 - Handling: Each read/write triggers `EXCEPTION_SINGLE_STEP`. The handler reads the current value (`ReadProcessMemory`) and compares with the last value to classify: changed → `write old -> new`, unchanged → `read value`.
 - Threads: New threads are armed with the same watchpoint.
 
 ### Performance note:
 
-> [!WARNING] 
+> [!WARNING]  
 > The program does not meet the requirement of running at less than 2× the baseline speed of the target process.
 
 The main performance bottleneck comes from the operating system itself: every read or write access to the watched variable triggers a hardware data breakpoint, which in turn generates an exception.
